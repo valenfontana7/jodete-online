@@ -10,17 +10,20 @@
 ## 🚀 Deploy Options
 
 ### Render.com
+
 - Build: `npm install && npm run build`
 - Start: `node server/index.js`
 - Port: Auto-detectado por Render
 - WebSocket: Soportado nativamente
 
 ### Railway.app
+
 - Autodetección de Node.js
 - Build/Start automático desde `package.json`
 - Variables de entorno opcionales en dashboard
 
 ### VPS/Cloud Server
+
 ```bash
 npm install
 npm run build
@@ -46,16 +49,19 @@ pm2 startup
 ## 🐛 Troubleshooting
 
 **Socket no conecta:**
+
 - Verificar que el puerto esté expuesto correctamente
 - Confirmar CORS si cliente y servidor están en dominios distintos
 - Revisar que la plataforma soporte WebSockets (no todos los proxies lo permiten)
 
 **Build falla:**
+
 - Asegurar Node.js 18+
 - Verificar que todas las dependencias estén en `dependencies` (no solo `devDependencies`)
 - Revisar logs de build en la plataforma
 
 **Cartas no se muestran:**
+
 - Limpiar caché del navegador
 - Verificar que `dist/` contenga todos los assets después del build
 - Confirmar que Express esté sirviendo correctamente archivos estáticos
