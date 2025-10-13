@@ -1,0 +1,9 @@
+{
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "buildCommand": "npm install && npm run build",
+    "startCommand": "node server/index.js"
+  }
+}
