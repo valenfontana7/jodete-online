@@ -139,6 +139,10 @@ class Game {
   }
 
   start({ requesterId, cardsPerPlayer }) {
+    console.log(
+      `[Game.start] Intentando iniciar partida. Phase actual: ${this.phase}, Requester: ${requesterId}, Host: ${this.hostId}`
+    );
+
     if (this.phase !== "lobby") {
       throw new Error("La partida ya comenzó");
     }
@@ -501,9 +505,15 @@ class Game {
   }
 
   handleReset({ requesterId }) {
+    console.log(
+      `[Game.handleReset] Reiniciando partida. Phase actual: ${this.phase}, Requester: ${requesterId}, Host: ${this.hostId}`
+    );
+
     if (requesterId !== this.hostId) {
       throw new Error("Solo el anfitrión puede reiniciar la partida");
     }
+
+    // Preservar jugadores conectados antes del reset
     const preservedPlayers = this.players
       .filter((player) => player.connected)
       .map((player) => ({
@@ -512,11 +522,22 @@ class Game {
         declaredLastCard: false,
       }));
 
+    // Resetear el estado del juego (esto pone phase = "lobby")
     this.reset();
+
+    // Restaurar jugadores
     this.players = preservedPlayers;
     if (this.players.length) {
       this.hostId = this.players[0].id;
     }
+
+    // Asegurar que la fase esté en lobby
+    this.phase = "lobby";
+
+    console.log(
+      `[Game.handleReset] Reset completado. Phase nueva: ${this.phase}, Host: ${this.hostId}, Jugadores: ${this.players.length}`
+    );
+
     this.log("La partida se reinició. Esperando a que comiencen de nuevo.");
     this.broadcast();
   }
