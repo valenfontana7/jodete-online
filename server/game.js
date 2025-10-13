@@ -279,15 +279,22 @@ class Game {
     const card = this.drawCard();
     player.hand.push(card);
     player.declaredLastCard = false;
+
+    // Verificar si la carta robada es jugable inmediatamente
+    const drawnCardIsPlayable = this.isPlayable(card);
+
     const hasPlayableCards = player.hand.some((handCard) =>
       this.isPlayable(handCard)
     );
 
     let message = `${player.name} robó una carta.`;
-    if (hasPlayableCards) {
-      message += " Puede jugar inmediatamente si tiene una opción válida.";
+
+    if (drawnCardIsPlayable) {
+      message += " La carta robada se puede jugar inmediatamente.";
+    } else if (hasPlayableCards) {
+      message += " Tiene cartas jugables en su mano.";
     } else {
-      message += " No pudo jugar y pasa el turno.";
+      message += " No tiene cartas jugables, pasa el turno.";
       this.repeatConstraint = null;
       this.advanceTurn();
     }
@@ -434,10 +441,12 @@ class Game {
 
     const currentSuit = this.currentSuitOverride || top.suit;
 
+    // Si hay acumulación de doses, solo se puede jugar otro 2
     if (this.pendingDraw > 0) {
       return card.value === 2;
     }
 
+    // El 10 (comodín) se puede jugar siempre, EXCEPTO cuando hay doses acumulados
     if (card.value === 10) {
       return true;
     }

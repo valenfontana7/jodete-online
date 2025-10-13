@@ -27,9 +27,18 @@ const manager = new GameManager(io);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distPath = path.join(__dirname, "../dist");
 
+// Health check endpoint (útil para monitoreo en producción)
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    rooms: manager.rooms.size,
+  });
+});
+
 app.use(express.static(distPath));
 app.get("*", (req, res, next) => {
-  if (req.path.startsWith("/socket.io/")) {
+  if (req.path.startsWith("/socket.io/") || req.path.startsWith("/api/")) {
     return next();
   }
   res.sendFile(path.join(distPath, "index.html"));

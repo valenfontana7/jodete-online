@@ -260,7 +260,7 @@ function App() {
     instance.on("connect_error", (err) => {
       console.error("Error de conexión con el servidor", err);
       setError(
-        "No se pudo conectar con el servidor. Verificá el backend o tu red LAN."
+        "No se pudo conectar con el servidor. Verificá que el backend esté activo."
       );
     });
 
@@ -891,8 +891,7 @@ function App() {
           )}
           {error && <p className="error-banner">{error}</p>}
           <p className="hint">
-            Consejo: compartí tu IP local para que otros se conecten desde la
-            misma red.
+            Compartí la URL de esta página para invitar a otros jugadores.
           </p>
         </section>
       )}

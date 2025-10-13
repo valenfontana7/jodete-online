@@ -1,15 +1,16 @@
 # Jodete Online
 
-Juego de cartas española "Jodete" con soporte en tiempo real para 2 a 6 jugadores conectados en la misma red local. El proyecto incluye un servidor Node/Express con Socket.IO para sincronización y un cliente React con una interfaz moderna que guía a cada jugador por las reglas especiales del mazo.
+Juego de cartas española "Jodete" con soporte en tiempo real para 2 a 6 jugadores. El proyecto incluye un servidor Node/Express con Socket.IO para sincronización y un cliente React con una interfaz moderna que guía a cada jugador por las reglas especiales del mazo.
 
 ## 🚀 Características
 
 - Reglas completas del Jodete con mazo de 40 cartas (1-7, 10-12) y acciones especiales:
-  - **2**: acumula +2 cartas para el siguiente jugador (encadenable).
+  - **2**: acumula +2 cartas para el siguiente jugador (encadenable). Solo se puede responder con otro 2.
   - **4**: salta a la siguiente persona.
   - **11**: el jugador repite con el mismo palo u otro 11.
-  - **10**: comodín, permite elegir nuevo palo.
+  - **10**: comodín, se puede jugar EN CUALQUIER MOMENTO (excepto cuando hay doses acumulados). Permite elegir nuevo palo.
   - **12**: invierte el sentido de juego (con 2 jugadores actúa como salto).
+  - **Robo del mazo**: Si robás una carta y es jugable, podés jugarla inmediatamente en el mismo turno.
   - Penalizaciones automáticas por jugar fuera de turno o no avisar "última carta".
 - Lobby compartido con selección de cartas iniciales según cantidad de participantes.
 - Historial en vivo de eventos y acciones destacadas.
@@ -19,7 +20,6 @@ Juego de cartas española "Jodete" con soporte en tiempo real para 2 a 6 jugador
 ## 📦 Requisitos previos
 
 - Node.js 18 o superior.
-- Todos los jugadores deben estar conectados a la misma red LAN.
 
 ## 🧩 Instalación
 
@@ -37,7 +37,7 @@ npm run dev:full
 
 - Backend: http://localhost:3001 (puerto configurable con `PORT`).
 - Frontend: http://localhost:5173 (servido por Vite).
-- El cliente detecta automáticamente el host LAN (usa `VITE_SOCKET_URL` si necesitás apuntar a otra IP).
+- El cliente detecta automáticamente la URL del servidor (usa `VITE_SOCKET_URL` si necesitás especificar una URL diferente).
 
 ## 🏗️ Build de producción
 
@@ -68,6 +68,26 @@ El servidor de Node servirá los archivos estáticos generados en `dist/` y mant
 - `npm run lint`: ejecuta ESLint sobre el cliente y el servidor.
 - `npm run build`: genera el bundle de Vite listo para producción.
 - `npm run server`: levanta únicamente el backend (ideal después del build).
+- `npm run test:connection [URL]`: prueba la conectividad Socket.IO a un servidor (local o remoto).
+
+### Probar conectividad
+
+Para verificar que tu servidor sea accesible:
+
+```bash
+# Servidor local
+npm run test:connection http://localhost:3001
+
+# Servidor en producción
+npm run test:connection https://tu-app.onrender.com
+```
+
+Este script verifica:
+
+- ✅ Conexión Socket.IO exitosa
+- ✅ Transporte utilizado (WebSocket/Polling)
+- ✅ Listado de salas disponibles
+- ✅ Capacidad de crear sala
 
 ## 🛠️ Tecnologías
 
