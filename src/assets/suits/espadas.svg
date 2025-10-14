@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="currentColor">
+  <!-- Espada estilo baraja española -->
+  <g fill="#4a7da1" stroke="#2a4d66" stroke-width="2">
+    <!-- Hoja de la espada -->
+    <path d="M 48 15 L 45 60 L 50 65 L 55 60 L 52 15 Z"/>
+    
+    <!-- Filo central -->
+    <line x1="50" y1="15" x2="50" y2="60" stroke="#2a4d66" stroke-width="1"/>
+    
+    <!-- Guarda (crossguard) -->
+    <rect x="35" y="58" width="30" height="6" rx="2"/>
+    <ellipse cx="35" cy="61" rx="4" ry="5"/>
+    <ellipse cx="65" cy="61" rx="4" ry="5"/>
+    
+    <!-- Empuñadura -->
+    <rect x="47" y="64" width="6" height="16" rx="2"/>
+    <line x1="44" y1="68" x2="56" y2="68" stroke="#2a4d66" stroke-width="1"/>
+    <line x1="44" y1="72" x2="56" y2="72" stroke="#2a4d66" stroke-width="1"/>
+    <line x1="44" y1="76" x2="56" y2="76" stroke="#2a4d66" stroke-width="1"/>
+    
+    <!-- Pomo (pommel) -->
+    <circle cx="50" cy="83" r="5"/>
+    <circle cx="50" cy="83" r="3" fill="#2a4d66"/>
+  </g>
+</svg>

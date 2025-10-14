@@ -1,39 +1,28 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import "./App.css";
+import SuitIcon from "./SuitIcon";
 
-// Símbolos de palos con fallbacks para mayor compatibilidad
+// Metadatos de los palos de la baraja española
 const SUIT_META = [
   {
     id: "oros",
     label: "Oros",
-    symbol: "◯", // Círculo (muy compatible) - era 🪙
-    emoji: "🪙", // Emoji original como fallback
-    fallback: "O",
     tone: "suit-gold",
   },
   {
     id: "copas",
     label: "Copas",
-    symbol: "♥", // Corazón (muy compatible) - era 🍷
-    emoji: "🍷",
-    fallback: "C",
     tone: "suit-red",
   },
   {
     id: "espadas",
     label: "Espadas",
-    symbol: "♠", // Pica (muy compatible) - era ⚔️
-    emoji: "⚔️",
-    fallback: "E",
     tone: "suit-blue",
   },
   {
     id: "bastos",
     label: "Bastos",
-    symbol: "♣", // Trébol (muy compatible) - era 🪵
-    emoji: "🪵",
-    fallback: "B",
     tone: "suit-green",
   },
 ];
@@ -1147,7 +1136,7 @@ function App() {
                               {valueSign}
                             </span>
                             <span className="card-corner-suit">
-                              {suit?.symbol ?? "🃏"}
+                              <SuitIcon suit={suit?.id} />
                             </span>
                           </span>
                           <div className="card-illustration">
@@ -1159,14 +1148,14 @@ function App() {
                                 ✶
                               </span>
                               <span className="card-ornament card-ornament--suit">
-                                {suit?.symbol ?? "🃏"}
+                                <SuitIcon suit={suit?.id} />
                               </span>
                               <span className="card-ornament card-ornament--dot">
                                 ✶
                               </span>
                             </div>
                             <span className="card-icon">
-                              {suit?.symbol ?? "🃏"}
+                              <SuitIcon suit={suit?.id} />
                             </span>
                             <div
                               className="card-ornament-row card-ornament-row--bottom"
@@ -1176,7 +1165,7 @@ function App() {
                                 ✶
                               </span>
                               <span className="card-ornament card-ornament--suit">
-                                {suit?.symbol ?? "🃏"}
+                                <SuitIcon suit={suit?.id} />
                               </span>
                               <span className="card-ornament card-ornament--dot">
                                 ✶
@@ -1189,7 +1178,7 @@ function App() {
                               {valueSign}
                             </span>
                             <span className="card-corner-suit">
-                              {suit?.symbol ?? "🃏"}
+                              <SuitIcon suit={suit?.id} />
                             </span>
                           </span>
                         </div>
@@ -1239,7 +1228,7 @@ function App() {
                         <span className="card-corner card-corner--top">
                           <span className="card-corner-value">{valueSign}</span>
                           <span className="card-corner-suit">
-                            {suit?.symbol ?? "🃏"}
+                            <SuitIcon suit={suit?.id} />
                           </span>
                         </span>
                         <div className="card-illustration">
@@ -1251,14 +1240,14 @@ function App() {
                               ✶
                             </span>
                             <span className="card-ornament card-ornament--suit">
-                              {suit?.symbol ?? "🃏"}
+                              <SuitIcon suit={suit?.id} />
                             </span>
                             <span className="card-ornament card-ornament--dot">
                               ✶
                             </span>
                           </div>
                           <span className="card-icon">
-                            {suit?.symbol ?? "🃏"}
+                            <SuitIcon suit={suit?.id} />
                           </span>
                           <div
                             className="card-ornament-row card-ornament-row--bottom"
@@ -1268,7 +1257,7 @@ function App() {
                               ✶
                             </span>
                             <span className="card-ornament card-ornament--suit">
-                              {suit?.symbol ?? "🃏"}
+                              <SuitIcon suit={suit?.id} />
                             </span>
                             <span className="card-ornament card-ornament--dot">
                               ✶
@@ -1279,7 +1268,7 @@ function App() {
                         <span className="card-corner card-corner--bottom">
                           <span className="card-corner-value">{valueSign}</span>
                           <span className="card-corner-suit">
-                            {suit?.symbol ?? "🃏"}
+                            <SuitIcon suit={suit?.id} />
                           </span>
                         </span>
                       </div>
@@ -1358,13 +1347,15 @@ function App() {
                           ✶
                         </span>
                         <span className="card-ornament card-ornament--suit">
-                          {suit.symbol}
+                          <SuitIcon suit={suit.id} />
                         </span>
                         <span className="card-ornament card-ornament--dot">
                           ✶
                         </span>
                       </div>
-                      <span className="card-icon">{suit.symbol}</span>
+                      <span className="card-icon">
+                        <SuitIcon suit={suit.id} />
+                      </span>
                       <div
                         className="card-ornament-row card-ornament-row--bottom"
                         aria-hidden="true"
@@ -1373,7 +1364,7 @@ function App() {
                           ✶
                         </span>
                         <span className="card-ornament card-ornament--suit">
-                          {suit.symbol}
+                          <SuitIcon suit={suit.id} />
                         </span>
                         <span className="card-ornament card-ornament--dot">
                           ✶
