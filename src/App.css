@@ -1153,11 +1153,18 @@ button:disabled {
   font-size: 1.3rem;
 }
 
+/* Estilos para símbolos de palos - mayor compatibilidad */
 .suit-gold {
   --card-accent: #aa8236;
   --card-shadow: rgba(102, 67, 23, 0.34);
   --card-ribbon: rgba(183, 140, 67, 0.25);
   --card-icon-color: #a06f1f;
+}
+
+.suit-gold .card-suit {
+  color: #d4a942;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  font-weight: bold;
 }
 
 .suit-red {
@@ -1167,6 +1174,12 @@ button:disabled {
   --card-icon-color: #a03d2b;
 }
 
+.suit-red .card-suit {
+  color: #d94a35;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  font-weight: bold;
+}
+
 .suit-blue {
   --card-accent: #3d5a6c;
   --card-shadow: rgba(36, 58, 79, 0.32);
@@ -1174,11 +1187,23 @@ button:disabled {
   --card-icon-color: #2f5066;
 }
 
+.suit-blue .card-suit {
+  color: #4a7da1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  font-weight: bold;
+}
+
 .suit-green {
   --card-accent: #4b6846;
   --card-shadow: rgba(44, 68, 41, 0.3);
   --card-ribbon: rgba(101, 134, 83, 0.22);
   --card-icon-color: #395b35;
+}
+
+.suit-green .card-suit {
+  color: #5c8c55;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  font-weight: bold;
 }
 
 .card-suit {

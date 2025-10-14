@@ -2,11 +2,40 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import "./App.css";
 
+// Símbolos de palos con fallbacks para mayor compatibilidad
 const SUIT_META = [
-  { id: "oros", label: "Oros", symbol: "🪙", tone: "suit-gold" },
-  { id: "copas", label: "Copas", symbol: "🍷", tone: "suit-red" },
-  { id: "espadas", label: "Espadas", symbol: "⚔️", tone: "suit-blue" },
-  { id: "bastos", label: "Bastos", symbol: "🪵", tone: "suit-green" },
+  {
+    id: "oros",
+    label: "Oros",
+    symbol: "◯", // Círculo (muy compatible) - era 🪙
+    emoji: "🪙", // Emoji original como fallback
+    fallback: "O",
+    tone: "suit-gold",
+  },
+  {
+    id: "copas",
+    label: "Copas",
+    symbol: "♥", // Corazón (muy compatible) - era 🍷
+    emoji: "🍷",
+    fallback: "C",
+    tone: "suit-red",
+  },
+  {
+    id: "espadas",
+    label: "Espadas",
+    symbol: "♠", // Pica (muy compatible) - era ⚔️
+    emoji: "⚔️",
+    fallback: "E",
+    tone: "suit-blue",
+  },
+  {
+    id: "bastos",
+    label: "Bastos",
+    symbol: "♣", // Trébol (muy compatible) - era 🪵
+    emoji: "🪵",
+    fallback: "B",
+    tone: "suit-green",
+  },
 ];
 
 const VALUE_NAMES = {

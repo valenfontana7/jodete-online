@@ -12,6 +12,7 @@ Juego de cartas española "Jodete" con soporte en tiempo real para 2 a 6 jugador
   - **12**: invierte el sentido de juego (con 2 jugadores actúa como salto).
   - **Robo del mazo**: Si robás una carta y es jugable, podés jugarla inmediatamente en el mismo turno.
   - Penalizaciones automáticas por jugar fuera de turno o no avisar "última carta".
+- Símbolos de palos con **compatibilidad universal**: ◯ Oros, ♥ Copas, ♠ Espadas, ♣ Bastos (funcionan en todos los dispositivos desde 1995).
 - Lobby compartido con selección de cartas iniciales según cantidad de participantes.
 - Historial en vivo de eventos y acciones destacadas.
 - Modal para elegir palo al jugar un 10 y controles rápidos para gritar "¡Jodete!".
