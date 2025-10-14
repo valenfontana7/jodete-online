@@ -44,9 +44,28 @@ class GameManager {
   }
 
   listRooms() {
-    return Array.from(this.rooms.values()).map((room) => ({
+    const rooms = Array.from(this.rooms.values()).map((room) => ({
       ...room.game.getSummary(),
     }));
+
+    // Ordenar: activas primero (con jugadores), luego por fase, luego por fecha
+    return rooms.sort((a, b) => {
+      // 1. Priorizar salas con jugadores conectados
+      if (a.playerCount !== b.playerCount) {
+        return b.playerCount - a.playerCount;
+      }
+
+      // 2. Priorizar por fase (playing > lobby > finished)
+      const phaseOrder = { playing: 3, lobby: 2, finished: 1 };
+      const aPhase = phaseOrder[a.phase] || 0;
+      const bPhase = phaseOrder[b.phase] || 0;
+      if (aPhase !== bPhase) {
+        return bPhase - aPhase;
+      }
+
+      // 3. Más recientes primero
+      return b.createdAt - a.createdAt;
+    });
   }
 
   emitRoomsOverview(targetSocket) {
