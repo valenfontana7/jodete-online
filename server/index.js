@@ -177,6 +177,35 @@ httpServer.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`);
 });
 
+// Keep-alive para evitar sleep mode en Render (plan gratuito)
+if (process.env.NODE_ENV === "production") {
+  const RENDER_URL = process.env.RENDER_EXTERNAL_URL;
+
+  if (RENDER_URL) {
+    console.log("🔄 Self-ping habilitado para prevenir sleep mode");
+
+    // Primer ping después de 5 minutos
+    setTimeout(() => {
+      // Luego cada 14 minutos
+      setInterval(async () => {
+        try {
+          const response = await fetch(`${RENDER_URL}/api/health`);
+          if (response.ok) {
+            const data = await response.json();
+            console.log(
+              `✓ Self-ping exitoso - Rooms: ${data.rooms}, Uptime: ${Math.floor(
+                process.uptime()
+              )}s`
+            );
+          }
+        } catch (error) {
+          console.log("⚠️ Self-ping falló:", error.message);
+        }
+      }, 14 * 60 * 1000);
+    }, 5 * 60 * 1000);
+  }
+}
+
 // Manejo de errores no capturados
 process.on("uncaughtException", (error) => {
   console.error("Error no capturado:", error);

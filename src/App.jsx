@@ -875,7 +875,13 @@ function App() {
                 socketConnected ? "dot dot--online" : "dot dot--offline"
               }
             />
-            <span>{socketConnected ? "Conectado" : "Desconectado"}</span>
+            <span>
+              {socketConnected
+                ? "Conectado"
+                : socket
+                ? "Reconectando..."
+                : "Desconectado"}
+            </span>
           </div>
           <span className="phase-badge">{phaseLabel}</span>
         </div>
