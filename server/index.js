@@ -134,10 +134,17 @@ io.on("connection", (socket) => {
   };
 
   withGameAction("start", (game, payload = {}) => {
-    game.start({
-      requesterId: socket.id,
-      cardsPerPlayer: payload.cardsPerPlayer,
-    });
+    try {
+      console.log(`[start] Iniciando partida para socket ${socket.id}`);
+      game.start({
+        requesterId: socket.id,
+        cardsPerPlayer: payload.cardsPerPlayer,
+      });
+      console.log(`[start] Partida iniciada exitosamente`);
+    } catch (error) {
+      console.error(`[start] Error al iniciar:`, error);
+      throw error;
+    }
   });
 
   withGameAction("playCard", (game, payload = {}) => {

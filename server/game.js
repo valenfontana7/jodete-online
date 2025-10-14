@@ -196,6 +196,11 @@ class Game {
       this.getActivePlayer().name
     }.`;
     this.log(this.lastAction);
+
+    console.log(
+      `[Game.start] Partida iniciada exitosamente. Jugadores activos: ${activePlayers.length}, Cartas por jugador: ${handSize}`
+    );
+    this.broadcast();
   }
 
   createShuffledDeck() {
@@ -554,67 +559,108 @@ class Game {
   }
 
   broadcast() {
+    console.log(
+      `[broadcast] Enviando estado a ${this.players.length} jugadores`
+    );
+    let successCount = 0;
+    let errorCount = 0;
+
     this.players.forEach((player) => {
       try {
         const socket = this.io.sockets.sockets.get(player.id);
         if (socket && socket.connected) {
           socket.emit("state", this.buildStateForPlayer(player.id));
+          successCount++;
+        } else {
+          console.log(
+            `[broadcast] Socket ${player.id} no conectado o no existe`
+          );
         }
       } catch (error) {
+        errorCount++;
         console.error(
           `Error al hacer broadcast a jugador ${player.id}:`,
           error
         );
       }
     });
+
+    console.log(
+      `[broadcast] Completado: ${successCount} exitosos, ${errorCount} errores`
+    );
     this.onStateChange?.();
   }
 
   buildStateForPlayer(requesterId) {
-    const requester = this.getPlayer(requesterId);
-    const top = this.discardPile[this.discardPile.length - 1] || null;
-    const playableCards = requester
-      ? requester.hand
-          .filter((card) => this.isPlayable(card))
-          .map((card) => card.id)
-      : [];
+    try {
+      const requester = this.getPlayer(requesterId);
+      const top = this.discardPile[this.discardPile.length - 1] || null;
+      const playableCards = requester
+        ? requester.hand
+            .filter((card) => this.isPlayable(card))
+            .map((card) => card.id)
+        : [];
 
-    const cardsPerPlayerOptions = this.getAllowedHandSizes();
+      const cardsPerPlayerOptions = this.getAllowedHandSizes();
 
-    return {
-      phase: this.phase,
-      me: requester
-        ? {
-            id: requester.id,
-            name: requester.name,
-            declaredLastCard: requester.declaredLastCard,
-            hand: requester.hand,
-            playableCardIds: playableCards,
-            token: requester.token,
-          }
-        : null,
-      players: this.players.map((player, index) => ({
-        id: player.id,
-        name: player.name,
-        cardCount: player.hand.length,
-        declaredLastCard: player.declaredLastCard,
-        connected: player.connected,
-        isCurrent: index === this.currentPlayerIndex,
-        isHost: player.id === this.hostId,
-      })),
-      topCard: top,
-      currentSuit: this.currentSuitOverride || top?.suit || null,
-      pendingDraw: this.pendingDraw,
-      direction: this.direction,
-      lastAction: this.lastAction,
-      winnerId: this.winnerId,
-      deckCount: this.drawPile.length,
-      discardCount: this.discardPile.length,
-      messages: this.messages.slice(-20),
-      cardsPerPlayerOptions,
-      roomId: this.roomId,
-      roomName: this.roomName,
-    };
+      return {
+        phase: this.phase,
+        me: requester
+          ? {
+              id: requester.id,
+              name: requester.name,
+              declaredLastCard: requester.declaredLastCard,
+              hand: requester.hand,
+              playableCardIds: playableCards,
+              token: requester.token,
+            }
+          : null,
+        players: this.players.map((player, index) => ({
+          id: player.id,
+          name: player.name,
+          cardCount: player.hand.length,
+          declaredLastCard: player.declaredLastCard,
+          connected: player.connected,
+          isCurrent: index === this.currentPlayerIndex,
+          isHost: player.id === this.hostId,
+        })),
+        topCard: top,
+        currentSuit: this.currentSuitOverride || top?.suit || null,
+        pendingDraw: this.pendingDraw,
+        direction: this.direction,
+        lastAction: this.lastAction,
+        winnerId: this.winnerId,
+        deckCount: this.drawPile.length,
+        discardCount: this.discardPile.length,
+        messages: this.messages.slice(-20),
+        cardsPerPlayerOptions,
+        roomId: this.roomId,
+        roomName: this.roomName,
+      };
+    } catch (error) {
+      console.error(
+        `Error al construir estado para jugador ${requesterId}:`,
+        error
+      );
+      // Retornar estado mínimo para prevenir crash
+      return {
+        phase: this.phase,
+        me: null,
+        players: [],
+        topCard: null,
+        currentSuit: null,
+        pendingDraw: 0,
+        direction: 1,
+        lastAction: "Error al cargar el estado",
+        winnerId: null,
+        deckCount: 0,
+        discardCount: 0,
+        messages: [],
+        cardsPerPlayerOptions: [],
+        roomId: this.roomId,
+        roomName: this.roomName,
+      };
+    }
   }
 
   getSummary() {
