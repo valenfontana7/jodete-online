@@ -523,7 +523,8 @@ function App() {
       autoJoinAttemptedRef.current = false;
       setPendingJoin(true);
 
-      if (!joinableRooms.length) {
+      // Si no hay salas disponibles O no seleccionaste ninguna, crear una nueva
+      if (!joinableRooms.length || !selectedRoomId) {
         socket.emit("createRoom", {
           roomName: `Mesa de ${trimmed}`,
           playerName: trimmed,
@@ -532,14 +533,7 @@ function App() {
         return;
       }
 
-      if (!selectedRoomId) {
-        setError(
-          "Elegí una sala para unirte o esperá a que se cree una nueva."
-        );
-        setPendingJoin(false);
-        return;
-      }
-
+      // Si seleccionaste una sala, verificar que exista y unirse
       const selectedExists = joinableRooms.some(
         (room) => room.id === selectedRoomId
       );
@@ -805,8 +799,7 @@ function App() {
         >
           <h2>Sumate a la mesa</h2>
           <p className="panel-subtitle">
-            Ingresá tu nombre y elegí una sala activa o dejamos todo listo para
-            crear una nueva.
+            Ingresá tu nombre y elegí una sala o creá una nueva.
           </p>
           <form className="join-form" onSubmit={handleJoinSubmit}>
             <input
@@ -830,9 +823,9 @@ function App() {
                 ? "Conectando..."
                 : !roomsLoaded
                 ? "Sincronizando..."
-                : joinableRooms.length
-                ? "Unirme"
-                : "Crear y unirme"}
+                : selectedRoomId
+                ? "Unirme a sala"
+                : "Crear sala nueva"}
             </button>
           </form>
           {!roomsLoaded ? (
@@ -841,7 +834,9 @@ function App() {
             <div className="rooms-panel">
               <p className="hint">
                 {joinableRooms.length
-                  ? "Salas disponibles para unirse:"
+                  ? selectedRoomId
+                    ? "Seleccionaste una sala. Presioná 'Unirme' o elegí 'Crear sala nueva' deseleccionando."
+                    : "Salas disponibles (hacé click para unirte) o creá una nueva:"
                   : "Solo hay partidas finalizadas. Creá una sala nueva."}
               </p>
               <div className="rooms-list">
@@ -857,7 +852,9 @@ function App() {
                       type="button"
                       key={room.id}
                       className={cardClass}
-                      onClick={() => setSelectedRoomId(room.id)}
+                      onClick={() =>
+                        setSelectedRoomId(isSelected ? null : room.id)
+                      }
                       disabled={!isJoinable || pendingJoin || pendingLeave}
                     >
                       <div className="room-card__info">
@@ -903,11 +900,16 @@ function App() {
             </div>
           ) : (
             <p className="hint">
-              No hay salas activas todavía. Vamos a crear una nueva apenas te
-              unas.
+              No hay salas activas. Se creará una nueva sala cuando te unas.
             </p>
           )}
           {error && <p className="error-banner">{error}</p>}
+          {joinableRooms.length > 0 && (
+            <p className="hint hint--tip">
+              💡 Tip: Hacé click en una sala para unirte, o dejala sin
+              seleccionar para crear una nueva.
+            </p>
+          )}
           <p className="hint">
             Compartí la URL de esta página para invitar a otros jugadores.
           </p>
@@ -1290,14 +1292,17 @@ function App() {
               <h2>Historial</h2>
             </header>
             <ul className="log-list">
-              {gameState?.messages?.map((message) => (
-                <li key={message.id}>
-                  <span className="log-time">
-                    {formatTimestamp(message.timestamp)}
-                  </span>
-                  <span className="log-text">{message.text}</span>
-                </li>
-              ))}
+              {gameState?.messages
+                ?.slice()
+                .reverse()
+                .map((message) => (
+                  <li key={message.id}>
+                    <span className="log-time">
+                      {formatTimestamp(message.timestamp)}
+                    </span>
+                    <span className="log-text">{message.text}</span>
+                  </li>
+                ))}
             </ul>
           </section>
         </div>
