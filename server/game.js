@@ -139,68 +139,103 @@ class Game {
   }
 
   start({ requesterId, cardsPerPlayer }) {
-    console.log(
-      `[Game.start] Intentando iniciar partida. Phase actual: ${this.phase}, Requester: ${requesterId}, Host: ${this.hostId}`
-    );
+    try {
+      console.log(
+        `[Game.start] Intentando iniciar partida. Phase actual: ${this.phase}, Requester: ${requesterId}, Host: ${this.hostId}`
+      );
 
-    if (this.phase !== "lobby") {
-      throw new Error("La partida ya comenzó");
-    }
-
-    if (requesterId !== this.hostId) {
-      throw new Error("Solo el anfitrión puede iniciar la partida");
-    }
-
-    const activePlayers = this.players.filter((p) => p.connected);
-    if (activePlayers.length < 2) {
-      throw new Error("Se necesitan al menos dos jugadores");
-    }
-
-    const allowed = this.getAllowedHandSizes();
-    if (!allowed.length) {
-      throw new Error("Cantidad de jugadores no soportada");
-    }
-
-    const handSize = allowed.includes(cardsPerPlayer)
-      ? cardsPerPlayer
-      : allowed[0];
-
-    this.phase = "playing";
-    this.drawPile = this.createShuffledDeck();
-    this.discardPile = [];
-    this.pendingDraw = 0;
-    this.repeatConstraint = null;
-    this.currentSuitOverride = null;
-    this.currentPlayerIndex = 0;
-    this.direction = 1;
-    this.winnerId = null;
-    this.lastAction = null;
-
-    activePlayers.forEach((player) => {
-      player.hand = [];
-      player.declaredLastCard = false;
-      for (let i = 0; i < handSize; i += 1) {
-        player.hand.push(this.drawCard());
+      if (this.phase !== "lobby") {
+        throw new Error("La partida ya comenzó");
       }
-    });
 
-    // Initialize discard pile with a non-action card if possible.
-    let firstCard = this.drawCard();
-    while ([2, 4, 10, 11, 12].includes(firstCard.value)) {
-      this.drawPile.unshift(firstCard);
-      firstCard = this.drawCard();
+      if (requesterId !== this.hostId) {
+        throw new Error("Solo el anfitrión puede iniciar la partida");
+      }
+
+      const activePlayers = this.players.filter((p) => p.connected);
+      if (activePlayers.length < 2) {
+        throw new Error("Se necesitan al menos dos jugadores");
+      }
+
+      const allowed = this.getAllowedHandSizes();
+      if (!allowed.length) {
+        throw new Error("Cantidad de jugadores no soportada");
+      }
+
+      const handSize = allowed.includes(cardsPerPlayer)
+        ? cardsPerPlayer
+        : allowed[0];
+
+      console.log(`[Game.start] Validaciones pasadas. Creando mazo...`);
+
+      this.phase = "playing";
+      this.drawPile = this.createShuffledDeck();
+      this.discardPile = [];
+      this.pendingDraw = 0;
+      this.repeatConstraint = null;
+      this.currentSuitOverride = null;
+      this.currentPlayerIndex = 0;
+      this.direction = 1;
+      this.winnerId = null;
+      this.lastAction = null;
+
+      console.log(
+        `[Game.start] Repartiendo ${handSize} cartas a ${activePlayers.length} jugadores...`
+      );
+
+      activePlayers.forEach((player) => {
+        player.hand = [];
+        player.declaredLastCard = false;
+        for (let i = 0; i < handSize; i += 1) {
+          player.hand.push(this.drawCard());
+        }
+      });
+
+      console.log(`[Game.start] Cartas repartidas. Buscando carta inicial...`);
+
+      // Initialize discard pile with a non-action card if possible.
+      let firstCard = this.drawCard();
+      let attempts = 0;
+      const maxAttempts = 50; // Evitar bucle infinito
+
+      while (
+        [2, 4, 10, 11, 12].includes(firstCard.value) &&
+        attempts < maxAttempts
+      ) {
+        this.drawPile.unshift(firstCard);
+        firstCard = this.drawCard();
+        attempts++;
+      }
+
+      if (attempts >= maxAttempts) {
+        console.warn(
+          `[Game.start] No se encontró carta no-acción después de ${maxAttempts} intentos. Usando carta actual.`
+        );
+      }
+
+      this.discardPile.push(firstCard);
+      this.currentSuitOverride = null;
+
+      console.log(
+        `[Game.start] Carta inicial: ${firstCard.value} de ${firstCard.suit}`
+      );
+
+      this.lastAction = `La partida comenzó. Empieza ${
+        this.getActivePlayer().name
+      }.`;
+      this.log(this.lastAction);
+
+      console.log(
+        `[Game.start] Partida iniciada exitosamente. Jugadores activos: ${activePlayers.length}, Cartas por jugador: ${handSize}`
+      );
+      this.broadcast();
+    } catch (error) {
+      console.error(`[Game.start] ERROR CRÍTICO:`, error);
+      console.error(`[Game.start] Stack:`, error.stack);
+      // Revertir al lobby si falla
+      this.phase = "lobby";
+      throw error;
     }
-    this.discardPile.push(firstCard);
-    this.currentSuitOverride = null;
-    this.lastAction = `La partida comenzó. Empieza ${
-      this.getActivePlayer().name
-    }.`;
-    this.log(this.lastAction);
-
-    console.log(
-      `[Game.start] Partida iniciada exitosamente. Jugadores activos: ${activePlayers.length}, Cartas por jugador: ${handSize}`
-    );
-    this.broadcast();
   }
 
   createShuffledDeck() {
