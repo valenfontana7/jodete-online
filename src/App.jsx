@@ -219,6 +219,8 @@ function App() {
       setRoomsLoaded(false);
       setRooms([]);
       setPendingLeave(false);
+      // NO resetear hasJoined aquí - esperar a que el servidor confirme el estado
+      // Esto previene que el cliente intente acciones antes de reconectarse
     });
     instance.on("rooms", (overview) => {
       setRooms(overview);
@@ -726,8 +728,13 @@ function App() {
   }, [gameState?.players, gameState?.me, currentRoomSummary]);
 
   const handleStart = useCallback(() => {
-    if (!socket || !hasJoined || !gameState?.me) {
-      console.warn("No se puede iniciar: no estás en una sala");
+    if (!socket || !socketConnected || !hasJoined || !gameState?.me) {
+      console.warn("No se puede iniciar: no estás en una sala o desconectado", {
+        socket: !!socket,
+        socketConnected,
+        hasJoined,
+        hasGameState: !!gameState?.me,
+      });
       return;
     }
     const fallbackSize =
@@ -741,6 +748,7 @@ function App() {
     socket.emit("start", { cardsPerPlayer: normalizedSize });
   }, [
     socket,
+    socketConnected,
     hasJoined,
     gameState?.me,
     cardsPerPlayer,
@@ -748,44 +756,56 @@ function App() {
   ]);
 
   const handleDraw = useCallback(() => {
-    if (!socket || !hasJoined || !gameState?.me) {
-      console.warn("No se puede robar: no estás en una sala");
+    if (!socket || !socketConnected || !hasJoined || !gameState?.me) {
+      console.warn("No se puede robar: no estás en una sala o desconectado");
       return;
     }
     socket.emit("drawCard");
-  }, [socket, hasJoined, gameState?.me]);
+  }, [socket, socketConnected, hasJoined, gameState?.me]);
 
   const handleDeclareLastCard = useCallback(() => {
-    if (!socket || !hasJoined || !gameState?.me) {
-      console.warn("No se puede declarar: no estás en una sala");
+    if (!socket || !socketConnected || !hasJoined || !gameState?.me) {
+      console.warn("No se puede declarar: no estás en una sala o desconectado");
       return;
     }
     socket.emit("declareLastCard");
-  }, [socket, hasJoined, gameState?.me]);
+  }, [socket, socketConnected, hasJoined, gameState?.me]);
 
   const handleCallJodete = useCallback(
     (targetId) => {
-      if (!socket || !hasJoined || !gameState?.me) {
-        console.warn("No se puede decir jodete: no estás en una sala");
+      if (!socket || !socketConnected || !hasJoined || !gameState?.me) {
+        console.warn(
+          "No se puede decir jodete: no estás en una sala o desconectado"
+        );
         return;
       }
       socket.emit("callJodete", { targetId });
     },
-    [socket, hasJoined, gameState?.me]
+    [socket, socketConnected, hasJoined, gameState?.me]
   );
 
   const handleReset = useCallback(() => {
-    if (!socket || !hasJoined || !gameState?.me) {
-      console.warn("No se puede reiniciar: no estás en una sala");
+    if (!socket || !socketConnected || !hasJoined || !gameState?.me) {
+      console.warn(
+        "No se puede reiniciar: no estás en una sala o desconectado"
+      );
       return;
     }
     socket.emit("reset");
-  }, [socket, hasJoined, gameState?.me]);
+  }, [socket, socketConnected, hasJoined, gameState?.me]);
 
   const handlePlayCard = useCallback(
     (card) => {
-      if (!socket || !card || !hasJoined || !gameState?.me) {
-        console.warn("No se puede jugar carta: no estás en una sala");
+      if (
+        !socket ||
+        !socketConnected ||
+        !card ||
+        !hasJoined ||
+        !gameState?.me
+      ) {
+        console.warn(
+          "No se puede jugar carta: no estás en una sala o desconectado"
+        );
         return;
       }
       if (!playableCards.has(card.id) || !isMyTurn) {
@@ -797,19 +817,27 @@ function App() {
       }
       socket.emit("playCard", { cardId: card.id });
     },
-    [socket, hasJoined, gameState?.me, isMyTurn, playableCards]
+    [socket, socketConnected, hasJoined, gameState?.me, isMyTurn, playableCards]
   );
 
   const confirmSuitSelection = useCallback(
     (suit) => {
-      if (!socket || !suitPromptCardId || !hasJoined || !gameState?.me) {
-        console.warn("No se puede confirmar palo: no estás en una sala");
+      if (
+        !socket ||
+        !socketConnected ||
+        !suitPromptCardId ||
+        !hasJoined ||
+        !gameState?.me
+      ) {
+        console.warn(
+          "No se puede confirmar palo: no estás en una sala o desconectado"
+        );
         return;
       }
       socket.emit("playCard", { cardId: suitPromptCardId, chosenSuit: suit });
       setSuitPromptCardId(null);
     },
-    [socket, hasJoined, gameState?.me, suitPromptCardId]
+    [socket, socketConnected, hasJoined, gameState?.me, suitPromptCardId]
   );
 
   const cancelSuitSelection = useCallback(() => {
@@ -817,10 +845,17 @@ function App() {
   }, []);
 
   const canStart =
+    socketConnected &&
+    hasJoined &&
     isHost &&
     (gameState?.players?.filter((player) => player.connected).length ?? 0) >= 2;
-  const canDraw = gameState?.phase === "playing" && isMyTurn;
-  const canDeclareLastCard = me?.hand?.length === 1 && !me.declaredLastCard;
+  const canDraw =
+    socketConnected && hasJoined && gameState?.phase === "playing" && isMyTurn;
+  const canDeclareLastCard =
+    socketConnected &&
+    hasJoined &&
+    me?.hand?.length === 1 &&
+    !me.declaredLastCard;
   const flashClassName = flashVariant
     ? `screen-flash screen-flash--${flashVariant}`
     : "screen-flash";
