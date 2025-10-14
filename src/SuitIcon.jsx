@@ -1,7 +1,7 @@
-import orosSvg from './assets/suits/oros.svg';
-import copasSvg from './assets/suits/copas.svg';
-import espadasSvg from './assets/suits/espadas.svg';
-import bastosSvg from './assets/suits/bastos.svg';
+import orosSvg from "./assets/suits/oros.svg";
+import copasSvg from "./assets/suits/copas.svg";
+import espadasSvg from "./assets/suits/espadas.svg";
+import bastosSvg from "./assets/suits/bastos.svg";
 
 const SUIT_ICONS = {
   oros: orosSvg,
@@ -10,9 +10,9 @@ const SUIT_ICONS = {
   bastos: bastosSvg,
 };
 
-export function SuitIcon({ suit, className = '', style = {} }) {
+export function SuitIcon({ suit, className = "", style = {} }) {
   const iconSrc = SUIT_ICONS[suit];
-  
+
   if (!iconSrc) {
     return <span className={className}>?</span>;
   }

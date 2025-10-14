@@ -9,6 +9,7 @@
 ## 🎯 Objetivo
 
 Reemplazar los símbolos Unicode genéricos (◯ ♥ ♠ ♣) con **iconos SVG personalizados** que representen auténticamente los palos de la baraja española:
+
 - **Oros**: Monedas doradas
 - **Copas**: Copa/cáliz rojo
 - **Espadas**: Espada azul
@@ -21,6 +22,7 @@ Reemplazar los símbolos Unicode genéricos (◯ ♥ ♠ ♣) con **iconos SVG p
 ### 1. Iconos SVG creados
 
 #### 📁 `src/assets/suits/oros.svg`
+
 ```xml
 <svg viewBox="0 0 100 100">
   <!-- Moneda de oro con decoración radial -->
@@ -31,12 +33,14 @@ Reemplazar los símbolos Unicode genéricos (◯ ♥ ♠ ♣) con **iconos SVG p
 ```
 
 **Características:**
+
 - Círculo dorado con múltiples anillos concéntricos
 - Decoración central sólida
 - 8 líneas radiales (4 cardinales + 4 diagonales)
 - Color: `#d4a942` (dorado) con bordes `#996515` (oro oscuro)
 
 #### 📁 `src/assets/suits/copas.svg`
+
 ```xml
 <svg viewBox="0 0 100 100">
   <!-- Copa de vino estilo español -->
@@ -46,12 +50,14 @@ Reemplazar los símbolos Unicode genéricos (◯ ♥ ♠ ♣) con **iconos SVG p
 ```
 
 **Características:**
+
 - Copa curva con borde superior elíptico
 - Pie ancho y base estable
 - 3 puntos decorativos en el cuerpo
 - Color: `#d94a35` (rojo vibrante) con bordes `#8b2e1f` (rojo oscuro)
 
 #### 📁 `src/assets/suits/espadas.svg`
+
 ```xml
 <svg viewBox="0 0 100 100">
   <!-- Espada completa con hoja, guarda y pomo -->
@@ -61,6 +67,7 @@ Reemplazar los símbolos Unicode genéricos (◯ ♥ ♠ ♣) con **iconos SVG p
 ```
 
 **Características:**
+
 - Hoja afilada con filo central
 - Guarda horizontal con terminaciones circulares
 - Empuñadura con líneas de agarre
@@ -68,6 +75,7 @@ Reemplazar los símbolos Unicode genéricos (◯ ♥ ♠ ♣) con **iconos SVG p
 - Color: `#4a7da1` (azul acero) con bordes `#2a4d66` (azul oscuro)
 
 #### 📁 `src/assets/suits/bastos.svg`
+
 ```xml
 <svg viewBox="0 0 100 100">
   <!-- Palo/garrote de madera -->
@@ -78,6 +86,7 @@ Reemplazar los símbolos Unicode genéricos (◯ ♥ ♠ ♣) con **iconos SVG p
 ```
 
 **Características:**
+
 - Forma orgánica (más grueso arriba, más grueso abajo)
 - Líneas horizontales simulando textura de madera
 - Nudos decorativos (6 círculos pequeños)
@@ -88,10 +97,10 @@ Reemplazar los símbolos Unicode genéricos (◯ ♥ ♠ ♣) con **iconos SVG p
 ### 2. Componente React: `SuitIcon.jsx`
 
 ```jsx
-import orosSvg from './assets/suits/oros.svg';
-import copasSvg from './assets/suits/copas.svg';
-import espadasSvg from './assets/suits/espadas.svg';
-import bastosSvg from './assets/suits/bastos.svg';
+import orosSvg from "./assets/suits/oros.svg";
+import copasSvg from "./assets/suits/copas.svg";
+import espadasSvg from "./assets/suits/espadas.svg";
+import bastosSvg from "./assets/suits/bastos.svg";
 
 const SUIT_ICONS = {
   oros: orosSvg,
@@ -100,9 +109,9 @@ const SUIT_ICONS = {
   bastos: bastosSvg,
 };
 
-export function SuitIcon({ suit, className = '', style = {} }) {
+export function SuitIcon({ suit, className = "", style = {} }) {
   const iconSrc = SUIT_ICONS[suit];
-  
+
   if (!iconSrc) {
     return <span className={className}>?</span>;
   }
@@ -119,6 +128,7 @@ export function SuitIcon({ suit, className = '', style = {} }) {
 ```
 
 **Características:**
+
 - Importación estática de SVGs (Vite los bundlea)
 - Fallback a "?" si el palo no existe
 - Props: `suit` (id del palo), `className`, `style`
@@ -129,13 +139,13 @@ export function SuitIcon({ suit, className = '', style = {} }) {
 ### 3. Integración en `App.jsx`
 
 #### Antes (con símbolos Unicode):
+
 ```jsx
-<span className="card-corner-suit">
-  {suit?.symbol ?? "🃏"}
-</span>
+<span className="card-corner-suit">{suit?.symbol ?? "🃏"}</span>
 ```
 
 #### Después (con componente SVG):
+
 ```jsx
 <span className="card-corner-suit">
   <SuitIcon suit={suit?.id} />
@@ -143,6 +153,7 @@ export function SuitIcon({ suit, className = '', style = {} }) {
 ```
 
 **Ubicaciones actualizadas:**
+
 - ✅ Esquinas de cartas (superior e inferior)
 - ✅ Icono central de carta
 - ✅ Ornamentos decorativos (4 posiciones por carta)
@@ -192,6 +203,7 @@ export function SuitIcon({ suit, className = '', style = {} }) {
 ## 🎨 Comparación visual
 
 ### Antes (símbolos Unicode):
+
 ```
 ┌─────────────┐
 │ ◯       7  │  ← Círculo genérico
@@ -203,6 +215,7 @@ export function SuitIcon({ suit, className = '', style = {} }) {
 ```
 
 ### Después (SVG personalizados):
+
 ```
 ┌─────────────┐
 │ 💰      7  │  ← Moneda dorada detallada
@@ -213,39 +226,45 @@ export function SuitIcon({ suit, className = '', style = {} }) {
 └─────────────┘
 ```
 
-*(Los emojis son ilustrativos, los SVG reales tienen mucho más detalle)*
+_(Los emojis son ilustrativos, los SVG reales tienen mucho más detalle)_
 
 ---
 
 ## ✅ Ventajas de esta solución
 
 ### 1. **Autenticidad visual**
+
 - ✅ Representación realista de baraja española
 - ✅ Cada palo es inconfundible
 - ✅ Estética profesional y pulida
 
 ### 2. **Compatibilidad total**
+
 - ✅ SVG soportado en todos los navegadores modernos (IE9+)
 - ✅ Vite bundlea los SVGs como assets optimizados
 - ✅ Fallback a "?" si algo falla (nunca cuadrados vacíos)
 
 ### 3. **Rendimiento**
+
 - ✅ SVGs inlineados en el bundle
 - ✅ Tamaño total: ~2KB para los 4 iconos
 - ✅ Sin requests HTTP adicionales
 - ✅ Cacheados junto con el bundle JS
 
 ### 4. **Escalabilidad**
+
 - ✅ SVG escala perfectamente sin pérdida de calidad
 - ✅ Funciona en pantallas HiDPI/Retina
 - ✅ Responsive por naturaleza
 
 ### 5. **Mantenibilidad**
+
 - ✅ Un componente centralizado (`SuitIcon`)
 - ✅ Fácil de actualizar los diseños (solo editar SVG)
 - ✅ Código limpio y reutilizable
 
 ### 6. **Accesibilidad**
+
 - ✅ Atributo `alt` con nombre del palo
 - ✅ Screen readers pueden identificar los palos
 - ✅ Alto contraste con fondos de carta
@@ -255,18 +274,21 @@ export function SuitIcon({ suit, className = '', style = {} }) {
 ## 📊 Impacto en el bundle
 
 ### Build anterior (con Unicode):
+
 ```
 dist/assets/index-BlEUVRHx.css   18.77 kB │ gzip:  4.79 kB
 dist/assets/index-KohKay16.js   258.41 kB │ gzip: 79.80 kB
 ```
 
 ### Build actual (con SVG):
+
 ```
 dist/assets/index-B17QJ6R-.css   19.07 kB │ gzip:  4.87 kB (+80 bytes)
 dist/assets/index-CTFKTY6O.js   263.71 kB │ gzip: 80.92 kB (+1.12 KB)
 ```
 
 **Análisis:**
+
 - ✅ Aumento mínimo: ~1.2KB gzipped total
 - ✅ Incluye 4 SVGs completos con detalles
 - ✅ Excelente trade-off calidad/tamaño
@@ -277,6 +299,7 @@ dist/assets/index-CTFKTY6O.js   263.71 kB │ gzip: 80.92 kB (+1.12 KB)
 ## 🧪 Testing realizado
 
 ### Build y lint:
+
 ```bash
 ✓ npm run build  → Built in 1.10s
 ✓ npm run lint   → No errors
@@ -284,6 +307,7 @@ dist/assets/index-CTFKTY6O.js   263.71 kB │ gzip: 80.92 kB (+1.12 KB)
 ```
 
 ### Verificación visual necesaria:
+
 - [ ] Iconos se ven correctos en cartas de la mano
 - [ ] Iconos se ven correctos en carta central
 - [ ] Ornamentos se ven bien proporcionados
@@ -297,12 +321,12 @@ dist/assets/index-CTFKTY6O.js   263.71 kB │ gzip: 80.92 kB (+1.12 KB)
 
 ### Paleta de colores utilizada:
 
-| Palo | Color principal | Color oscuro | Uso |
-|------|----------------|--------------|-----|
-| **Oros** | `#d4a942` | `#996515` | Relleno / Bordes |
-| **Copas** | `#d94a35` | `#8b2e1f` | Relleno / Bordes |
-| **Espadas** | `#4a7da1` | `#2a4d66` | Relleno / Bordes |
-| **Bastos** | `#5c8c55` | `#3a5a35` | Relleno / Bordes |
+| Palo        | Color principal | Color oscuro | Uso              |
+| ----------- | --------------- | ------------ | ---------------- |
+| **Oros**    | `#d4a942`       | `#996515`    | Relleno / Bordes |
+| **Copas**   | `#d94a35`       | `#8b2e1f`    | Relleno / Bordes |
+| **Espadas** | `#4a7da1`       | `#2a4d66`    | Relleno / Bordes |
+| **Bastos**  | `#5c8c55`       | `#3a5a35`    | Relleno / Bordes |
 
 **Nota**: Estos colores están embebidos en los SVG y coinciden con las variables CSS existentes (`--card-accent`).
 
@@ -318,6 +342,7 @@ dist/assets/index-CTFKTY6O.js   263.71 kB │ gzip: 80.92 kB (+1.12 KB)
 ## 🔮 Posibles mejoras futuras
 
 ### Opción 1: Animaciones SVG
+
 ```css
 .suit-icon {
   transition: transform 0.2s;
@@ -329,12 +354,15 @@ dist/assets/index-CTFKTY6O.js   263.71 kB │ gzip: 80.92 kB (+1.12 KB)
 ```
 
 ### Opción 2: Variantes de estilo
+
 - Estilo "clásico" (actual)
 - Estilo "moderno" (más minimalista)
 - Estilo "vintage" (con texturas)
 
 ### Opción 3: SVG inline con `currentColor`
+
 Permitir que los iconos hereden el color del texto:
+
 ```svg
 <svg>
   <path fill="currentColor" .../>
@@ -360,6 +388,7 @@ Permitir que los iconos hereden el color del texto:
 ## 🚀 Deployment
 
 ### Checklist:
+
 - [x] SVGs creados y optimizados
 - [x] Componente SuitIcon implementado
 - [x] Todas las referencias actualizadas
@@ -371,6 +400,7 @@ Permitir que los iconos hereden el color del texto:
 - [ ] Feedback de usuarios
 
 ### Commit sugerido:
+
 ```bash
 git add src/assets/suits/ src/SuitIcon.jsx src/App.jsx src/App.css
 git commit -m "feat: Implementar iconos SVG personalizados para palos de baraja española"
@@ -382,18 +412,21 @@ git push origin main
 ## 💡 Notas técnicas
 
 ### ¿Por qué SVG y no PNG/WebP?
+
 - ✅ Escalabilidad infinita sin pérdida
 - ✅ Tamaño de archivo muy pequeño
 - ✅ Fácil de editar y mantener
 - ✅ No require múltiples versiones (@2x, @3x)
 
 ### ¿Por qué importar en vez de inline?
+
 - ✅ Vite optimiza automáticamente
 - ✅ Mejor para cache del navegador
 - ✅ Código más limpio (no JSX gigante)
 - ✅ Reutilización eficiente
 
 ### ¿Por qué `<img>` y no `<svg>` inline?
+
 - ✅ Más simple de implementar
 - ✅ Vite maneja el bundling automáticamente
 - ✅ Menor complejidad en el componente
