@@ -20,6 +20,12 @@ const io = new Server(httpServer, {
   cors: CLIENT_ORIGINS
     ? { origin: CLIENT_ORIGINS }
     : { origin: "*", credentials: true },
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  upgradeTimeout: 30000,
+  maxHttpBufferSize: 1e6,
+  transports: ["websocket", "polling"],
+  allowEIO3: true,
 });
 
 const manager = new GameManager(io);
@@ -51,6 +57,12 @@ function emitError(socket, error) {
 
 io.on("connection", (socket) => {
   console.log(`Cliente conectado: ${socket.id}`);
+
+  // Manejo de errores del socket
+  socket.on("error", (error) => {
+    console.error(`Error en socket ${socket.id}:`, error);
+  });
+
   manager.emitRoomsOverview(socket);
 
   const safeAction = (eventName, handler) => {
@@ -58,11 +70,16 @@ io.on("connection", (socket) => {
       try {
         await handler(payload);
       } catch (error) {
-        console.error(`Error en ${eventName}`, error);
-        emitError(socket, error);
+        console.error(`Error en ${eventName} para socket ${socket.id}:`, error);
+        // Solo emitir error si el socket está conectado
+        if (socket.connected) {
+          emitError(socket, error);
+        }
         try {
           manager.withGame(socket.id, (game) => {
-            game.grantState(socket);
+            if (socket.connected) {
+              game.grantState(socket);
+            }
           });
         } catch (innerError) {
           if (innerError?.message) {
@@ -100,6 +117,16 @@ io.on("connection", (socket) => {
 
   const withGameAction = (eventName, action) => {
     safeAction(eventName, (payload = {}) => {
+      const roomId = manager.playerToRoom.get(socket.id);
+      if (!roomId) {
+        console.warn(
+          `[${eventName}] Socket ${socket.id} no está en ninguna sala`
+        );
+        if (socket.connected) {
+          socket.emit("actionError", "Necesitas unirte a una sala primero");
+        }
+        return;
+      }
       manager.withGame(socket.id, (game) => {
         action(game, payload);
       });
@@ -148,4 +175,15 @@ io.on("connection", (socket) => {
 
 httpServer.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`);
+});
+
+// Manejo de errores no capturados
+process.on("uncaughtException", (error) => {
+  console.error("Error no capturado:", error);
+  // No cerrar el servidor, intentar continuar
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("Promesa rechazada no manejada:", reason);
+  // No cerrar el servidor, intentar continuar
 });

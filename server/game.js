@@ -543,15 +543,28 @@ class Game {
   }
 
   grantState(socket) {
-    socket.emit("state", this.buildStateForPlayer(socket.id));
-    this.onStateChange?.();
+    try {
+      if (socket && socket.connected) {
+        socket.emit("state", this.buildStateForPlayer(socket.id));
+        this.onStateChange?.();
+      }
+    } catch (error) {
+      console.error(`Error al enviar estado a socket ${socket?.id}:`, error);
+    }
   }
 
   broadcast() {
     this.players.forEach((player) => {
-      const socket = this.io.sockets.sockets.get(player.id);
-      if (socket) {
-        socket.emit("state", this.buildStateForPlayer(player.id));
+      try {
+        const socket = this.io.sockets.sockets.get(player.id);
+        if (socket && socket.connected) {
+          socket.emit("state", this.buildStateForPlayer(player.id));
+        }
+      } catch (error) {
+        console.error(
+          `Error al hacer broadcast a jugador ${player.id}:`,
+          error
+        );
       }
     });
     this.onStateChange?.();

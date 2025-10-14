@@ -86,44 +86,55 @@ class GameManager {
   }
 
   leaveRoom(socket, { suppressEvent = false } = {}) {
-    const socketId = typeof socket === "string" ? socket : socket.id;
-    const roomId = this.playerToRoom.get(socketId);
-    if (!roomId) {
-      if (!suppressEvent && typeof socket !== "string") {
-        socket.emit("leftRoom");
+    try {
+      const socketId = typeof socket === "string" ? socket : socket.id;
+      const roomId = this.playerToRoom.get(socketId);
+      if (!roomId) {
+        if (!suppressEvent && typeof socket !== "string" && socket.connected) {
+          socket.emit("leftRoom");
+        }
+        return;
       }
-      return;
-    }
 
-    const room = this.rooms.get(roomId);
-    if (!room) {
+      const room = this.rooms.get(roomId);
+      if (!room) {
+        this.playerToRoom.delete(socketId);
+        if (!suppressEvent && typeof socket !== "string" && socket.connected) {
+          socket.emit("leftRoom");
+        }
+        return;
+      }
+
+      const result = room.game.removePlayer(socketId);
       this.playerToRoom.delete(socketId);
-      if (!suppressEvent && typeof socket !== "string") {
+      if (typeof socket !== "string" && socket.connected) {
+        socket.leave(roomId);
+      }
+
+      if (room.game.isEmpty()) {
+        this.rooms.delete(roomId);
+      }
+
+      room.game.broadcast();
+      if (!suppressEvent && typeof socket !== "string" && socket.connected) {
         socket.emit("leftRoom");
       }
-      return;
+      this.emitRoomsOverview();
+      return result;
+    } catch (error) {
+      console.error(`Error en leaveRoom para socket ${socket?.id}:`, error);
     }
-
-    const result = room.game.removePlayer(socketId);
-    this.playerToRoom.delete(socketId);
-    if (typeof socket !== "string") {
-      socket.leave(roomId);
-    }
-
-    if (room.game.isEmpty()) {
-      this.rooms.delete(roomId);
-    }
-
-    room.game.broadcast();
-    if (!suppressEvent && typeof socket !== "string") {
-      socket.emit("leftRoom");
-    }
-    this.emitRoomsOverview();
-    return result;
   }
 
   handleDisconnect(socket) {
-    this.leaveRoom(socket, { suppressEvent: true });
+    try {
+      this.leaveRoom(socket, { suppressEvent: true });
+    } catch (error) {
+      console.error(
+        `Error en handleDisconnect para socket ${socket.id}:`,
+        error
+      );
+    }
   }
 
   withGame(socketId, handler) {
