@@ -144,6 +144,54 @@ class Game {
     return { player };
   }
 
+  // Forzar la eliminación completa de un jugador (para salida voluntaria)
+  forceRemovePlayer(socketId) {
+    const idx = this.players.findIndex((p) => p.id === socketId);
+    if (idx === -1) return null;
+
+    const player = this.players[idx];
+    this.players.splice(idx, 1);
+    this.log(`${player.name} abandonó la partida.`);
+
+    // Si era el anfitrión, asignar nuevo anfitrión
+    if (this.hostId === socketId) {
+      this.hostId = this.players[0]?.id || null;
+      if (this.hostId) {
+        this.log(`${this.getPlayer(this.hostId).name} es el nuevo anfitrión.`);
+      }
+    }
+
+    // Si el jugador estaba en turno, pasar al siguiente
+    if (this.phase === "playing" && this.currentPlayerIndex >= 0) {
+      const wasCurrentPlayer =
+        this.players[this.currentPlayerIndex]?.id === socketId;
+
+      // Ajustar el índice del jugador actual si es necesario
+      if (idx < this.currentPlayerIndex) {
+        this.currentPlayerIndex--;
+      } else if (wasCurrentPlayer && this.players.length > 0) {
+        // Si era el turno del jugador que se fue, pasar al siguiente
+        this.currentPlayerIndex = this.currentPlayerIndex % this.players.length;
+      }
+
+      // Si solo queda un jugador o ninguno, terminar la partida
+      if (this.players.length <= 1) {
+        this.phase = "finished";
+        if (this.players.length === 1) {
+          this.winnerId = this.players[0].id;
+          this.log(
+            `${this.players[0].name} gana por abandono de los demás jugadores.`
+          );
+        } else {
+          this.log("Partida finalizada: todos los jugadores abandonaron.");
+        }
+      }
+    }
+
+    this.onStateChange?.();
+    return { player };
+  }
+
   getPlayer(playerId) {
     return this.players.find((p) => p.id === playerId);
   }
@@ -681,25 +729,13 @@ class Game {
   }
 
   broadcast() {
-    console.log(
-      `[broadcast] Enviando estado a ${this.players.length} jugadores`
-    );
-    let successCount = 0;
-    let errorCount = 0;
-
     this.players.forEach((player) => {
       try {
         const socket = this.io.sockets.sockets.get(player.id);
         if (socket && socket.connected) {
           socket.emit("state", this.buildStateForPlayer(player.id));
-          successCount++;
-        } else {
-          console.log(
-            `[broadcast] Socket ${player.id} no conectado o no existe`
-          );
         }
       } catch (error) {
-        errorCount++;
         console.error(
           `Error al hacer broadcast a jugador ${player.id}:`,
           error
@@ -707,9 +743,6 @@ class Game {
       }
     });
 
-    console.log(
-      `[broadcast] Completado: ${successCount} exitosos, ${errorCount} errores`
-    );
     this.onStateChange?.();
 
     // Guardar estado en base de datos (async, no bloquear)

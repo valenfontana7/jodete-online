@@ -9,6 +9,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import passport from "./auth/passport.js";
 import authRoutes from "./routes/auth.js";
+import rankingsRoutes from "./routes/rankings.js";
 import { verifyToken } from "./auth/jwt.js";
 import { GameManager } from "./gameManager.js";
 import { connectDatabase } from "./db/index.js";
@@ -37,6 +38,9 @@ app.use(passport.initialize());
 
 // Rutas de autenticación
 app.use("/auth", authRoutes);
+
+// Rutas de rankings
+app.use("/api/rankings", rankingsRoutes);
 
 const io = new Server(httpServer, {
   cors: CLIENT_ORIGINS
@@ -162,7 +166,9 @@ io.on("connection", (socket) => {
   });
 
   safeAction("leaveRoom", () => {
-    manager.leaveRoom(socket);
+    // Salida voluntaria del usuario (botón "Salir de la sala")
+    // force: true para eliminar completamente al jugador
+    manager.leaveRoom(socket, { force: true });
     manager.emitRoomsOverview();
   });
 

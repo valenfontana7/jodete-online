@@ -1,0 +1,377 @@
+/* Rankings Modal Overlay */
+.rankings-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Modal Container */
+.rankings-modal {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-radius: 20px;
+  padding: 2rem;
+  max-width: 900px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  position: relative;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Close Button */
+.rankings-modal .close-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.rankings-modal .close-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: rotate(90deg);
+}
+
+/* Title */
+.rankings-modal h2 {
+  text-align: center;
+  color: #fbbf24;
+  font-size: 2.5rem;
+  margin-bottom: 1.5rem;
+  text-shadow: 0 2px 10px rgba(251, 191, 36, 0.3);
+}
+
+/* Global Stats */
+.global-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stat-label {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  color: #fbbf24;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+/* Sort Tabs */
+.sort-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  justify-content: center;
+}
+
+.sort-tabs button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid transparent;
+  color: #cbd5e1;
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.sort-tabs button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+.sort-tabs button.active {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: #0f172a;
+  border-color: #fbbf24;
+  box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3);
+}
+
+/* Podium */
+.podium {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 2rem 0;
+}
+
+.podium-place {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem 1rem;
+  border-radius: 15px;
+  position: relative;
+  transition: transform 0.3s;
+}
+
+.podium-place:hover {
+  transform: translateY(-5px);
+}
+
+/* First Place */
+.podium-first {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  order: 2;
+  min-height: 250px;
+  box-shadow: 0 10px 30px rgba(251, 191, 36, 0.4);
+  animation: popIn 0.5s ease-out 0.2s both;
+}
+
+/* Second Place */
+.podium-second {
+  background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+  order: 1;
+  min-height: 200px;
+  box-shadow: 0 8px 25px rgba(148, 163, 184, 0.3);
+  animation: popIn 0.5s ease-out 0.3s both;
+}
+
+/* Third Place */
+.podium-third {
+  background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%);
+  order: 3;
+  min-height: 180px;
+  box-shadow: 0 8px 25px rgba(251, 146, 60, 0.3);
+  animation: popIn 0.5s ease-out 0.4s both;
+}
+
+@keyframes popIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.podium-medal {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.podium-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  margin-bottom: 0.75rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.podium-name {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #0f172a;
+  text-align: center;
+  margin-bottom: 0.75rem;
+  word-break: break-word;
+}
+
+.podium-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+  color: rgba(15, 23, 42, 0.8);
+  font-weight: 500;
+  text-align: center;
+}
+
+.podium-stats div {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+}
+
+/* Rankings Table */
+.rankings-table-container {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  overflow: hidden;
+  animation: fadeIn 0.5s ease-in 0.6s both;
+}
+
+.rankings-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rankings-table thead {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.rankings-table th {
+  padding: 1rem;
+  text-align: left;
+  color: #fbbf24;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+}
+
+.rankings-table td {
+  padding: 1rem;
+  color: #e2e8f0;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.rankings-table tbody tr {
+  transition: background 0.2s;
+}
+
+.rankings-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.player-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.table-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid #64748b;
+}
+
+/* Loading & Error States */
+.loading,
+.error,
+.no-data {
+  text-align: center;
+  padding: 3rem;
+  color: #cbd5e1;
+  font-size: 1.1rem;
+}
+
+.error {
+  color: #ef4444;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .rankings-modal {
+    padding: 1.5rem;
+    width: 95%;
+  }
+
+  .rankings-modal h2 {
+    font-size: 2rem;
+  }
+
+  .global-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .sort-tabs {
+    flex-direction: column;
+  }
+
+  .sort-tabs button {
+    width: 100%;
+  }
+
+  .podium {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .podium-place {
+    min-height: auto !important;
+    order: 0 !important;
+  }
+
+  .rankings-table th,
+  .rankings-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .player-cell {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+/* Scrollbar Styling */
+.rankings-modal::-webkit-scrollbar {
+  width: 8px;
+}
+
+.rankings-modal::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.rankings-modal::-webkit-scrollbar-thumb {
+  background: rgba(251, 191, 36, 0.3);
+  border-radius: 10px;
+}
+
+.rankings-modal::-webkit-scrollbar-thumb:hover {
+  background: rgba(251, 191, 36, 0.5);
+}

@@ -175,7 +175,7 @@ class GameManager {
     return player;
   }
 
-  leaveRoom(socket, { suppressEvent = false } = {}) {
+  leaveRoom(socket, { suppressEvent = false, force = false } = {}) {
     try {
       const socketId = typeof socket === "string" ? socket : socket.id;
       const roomId = this.playerToRoom.get(socketId);
@@ -195,7 +195,12 @@ class GameManager {
         return;
       }
 
-      const result = room.game.removePlayer(socketId);
+      // Si force=true, eliminar completamente al jugador (salida voluntaria)
+      // Si force=false, solo desconectar (pérdida de conexión involuntaria)
+      const result = force
+        ? room.game.forceRemovePlayer(socketId)
+        : room.game.removePlayer(socketId);
+
       this.playerToRoom.delete(socketId);
       if (typeof socket !== "string" && socket.connected) {
         socket.leave(roomId);

@@ -3,6 +3,7 @@ import { io } from "socket.io-client";
 import "./App.css";
 import SuitIcon from "./SuitIcon";
 import LoginButton from "./components/LoginButton";
+import Rankings from "./components/Rankings";
 import { useAuth } from "./contexts/AuthContext";
 
 // Metadatos de los palos de la baraja española
@@ -165,6 +166,7 @@ function App() {
   const [storedRoomId, setStoredRoomId] = useState(getInitialRoomId);
   const [roomsLoaded, setRoomsLoaded] = useState(false);
   const [pendingLeave, setPendingLeave] = useState(false);
+  const [showRankings, setShowRankings] = useState(false);
   const autoJoinAttemptedRef = useRef(false);
   const [flashVariant, setFlashVariant] = useState(null);
   const flashTimeoutRef = useRef(null);
@@ -935,6 +937,13 @@ function App() {
             </div>
             <span className="phase-badge">{phaseLabel}</span>
           </div>
+          <button
+            className="rankings-button"
+            onClick={() => setShowRankings(true)}
+            title="Ver Rankings"
+          >
+            🏆
+          </button>
           <LoginButton />
         </div>
       </header>
@@ -1542,6 +1551,8 @@ function App() {
           </div>
         </div>
       )}
+
+      {showRankings && <Rankings onClose={() => setShowRankings(false)} />}
     </div>
   );
 }
