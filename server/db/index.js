@@ -43,9 +43,17 @@ export async function connectDatabase() {
     await sequelize.authenticate();
     console.log("✅ Conexión a PostgreSQL establecida correctamente");
 
-    // Sincronizar modelos (solo en desarrollo)
-    // ⚠️ En producción usar migraciones
-    if (process.env.NODE_ENV !== "production") {
+    // Sincronizar modelos
+    // En desarrollo: alter true (modifica tablas existentes)
+    // En producción: solo crea si no existen (primera vez)
+    const isProduction = process.env.NODE_ENV === "production";
+    
+    if (isProduction) {
+      // En producción: solo crear tablas que no existan, no modificar las existentes
+      await sequelize.sync({ alter: false });
+      console.log("✅ Modelos sincronizados con la base de datos (producción)");
+    } else {
+      // En desarrollo: permitir modificaciones automáticas
       await sequelize.sync({ alter: true });
       console.log("✅ Modelos sincronizados con la base de datos");
     }
