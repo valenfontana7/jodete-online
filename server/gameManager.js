@@ -150,7 +150,17 @@ class GameManager {
       this.leaveRoom(socket, { suppressEvent: true });
     }
 
-    const { player, previousId } = room.game.addPlayer(socket.id, name, token);
+    // Pasar userId del socket autenticado al juego
+    const userId = socket.userId || null;
+    console.log(
+      `🔍 [DEBUG] joinRoom - socket.userId: ${socket.userId}, userId a pasar: ${userId}, name: ${name}`
+    );
+    const { player, previousId } = room.game.addPlayer(
+      socket.id,
+      name,
+      token,
+      userId
+    );
     if (previousId && previousId !== socket.id) {
       this.playerToRoom.delete(previousId);
     }

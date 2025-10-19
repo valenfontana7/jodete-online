@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import "./App.css";
 import SuitIcon from "./SuitIcon";
+import LoginButton from "./components/LoginButton";
+import { useAuth } from "./contexts/AuthContext";
 
 // Metadatos de los palos de la baraja española
 const SUIT_META = [
@@ -146,6 +148,7 @@ function formatTimestamp(timestamp) {
 }
 
 function App() {
+  const { getToken, isAuthenticated, refreshUser } = useAuth();
   const [socket, setSocket] = useState(null);
   const [socketConnected, setSocketConnected] = useState(false);
   const [gameState, setGameState] = useState(null);
@@ -177,6 +180,11 @@ function App() {
   );
 
   useEffect(() => {
+    const authToken = getToken();
+    console.log(
+      `🔍 [CLIENT] Inicializando socket. Token presente: ${!!authToken}, isAuthenticated: ${isAuthenticated}`
+    );
+
     const instance = io(SOCKET_URL, {
       withCredentials: true,
       transports: ["websocket", "polling"],
@@ -185,12 +193,20 @@ function App() {
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       timeout: 20000,
+      auth: {
+        token: authToken, // Enviar JWT al conectar
+      },
     });
     setSocket(instance);
 
     instance.on("connect", () => {
       setSocketConnected(true);
       console.log("Conectado al servidor");
+      console.log(
+        `🔍 [CLIENT] Token enviado al servidor: ${
+          authToken ? authToken.substring(0, 20) + "..." : "null"
+        }`
+      );
 
       // Reintentar reconexión automática si había un token y roomId guardados
       const savedToken =
@@ -311,10 +327,17 @@ function App() {
       );
     });
 
+    // Escuchar actualizaciones de estadísticas
+    instance.on("statsUpdated", (data) => {
+      console.log("📊 Estadísticas actualizadas desde el servidor:", data);
+      // Refrescar los datos del usuario
+      refreshUser();
+    });
+
     return () => {
       instance.disconnect();
     };
-  }, []);
+  }, [getToken, isAuthenticated, refreshUser]);
 
   useEffect(() => {
     if (!roomsLoaded || !joinableRooms.length) {
@@ -894,22 +917,25 @@ function App() {
           <h1>Jodete 🫵🏼</h1>
           <p>Baraja española, partidas en tiempo real.</p>
         </div>
-        <div className="status-badges">
-          <div className="status-indicator">
-            <span
-              className={
-                socketConnected ? "dot dot--online" : "dot dot--offline"
-              }
-            />
-            <span>
-              {socketConnected
-                ? "Conectado"
-                : socket
-                ? "Reconectando..."
-                : "Desconectado"}
-            </span>
+        <div className="header-controls">
+          <div className="status-badges">
+            <div className="status-indicator">
+              <span
+                className={
+                  socketConnected ? "dot dot--online" : "dot dot--offline"
+                }
+              />
+              <span>
+                {socketConnected
+                  ? "Conectado"
+                  : socket
+                  ? "Reconectando..."
+                  : "Desconectado"}
+              </span>
+            </div>
+            <span className="phase-badge">{phaseLabel}</span>
           </div>
-          <span className="phase-badge">{phaseLabel}</span>
+          <LoginButton />
         </div>
       </header>
 

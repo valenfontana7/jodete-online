@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import { Game as GameModel, GamePlayer, GameAction } from "./db/index.js";
+import { Game as GameModel, GamePlayer, GameAction, User } from "./db/index.js";
 
 const SUITS = ["oros", "copas", "espadas", "bastos"];
 const SUIT_LABELS = {
@@ -55,7 +55,10 @@ class Game {
     this.messages = [];
   }
 
-  addPlayer(socketId, name, providedToken) {
+  addPlayer(socketId, name, providedToken, userId = null) {
+    console.log(
+      `🔍 [DEBUG] addPlayer - socketId: ${socketId}, userId recibido: ${userId}, name: ${name}`
+    );
     const trimmed = (name || "").trim().slice(0, 32);
     const displayName = trimmed || "Jugador";
 
@@ -68,6 +71,10 @@ class Game {
         playerByToken.id = socketId;
         playerByToken.name = displayName;
         playerByToken.connected = true;
+        // Actualizar userId si cambió (por ejemplo, invitado que luego se autenticó)
+        if (userId) {
+          playerByToken.userId = userId;
+        }
         if (this.hostId === previousId) {
           this.hostId = socketId;
         }
@@ -81,6 +88,10 @@ class Game {
     if (existing) {
       existing.name = displayName;
       existing.connected = true;
+      // Actualizar userId si cambió
+      if (userId) {
+        existing.userId = userId;
+      }
       this.log(`${existing.name} se reconectó.`);
       this.onStateChange?.();
       return { player: existing, previousId: null };
@@ -99,6 +110,7 @@ class Game {
       hand: [],
       declaredLastCard: false,
       connected: true,
+      userId, // Asociar userId con el jugador (puede ser null para invitados)
     };
     this.players.push(player);
     if (!this.hostId) {
@@ -495,10 +507,15 @@ class Game {
 
     if (!player.hand.length) {
       this.phase = "finished";
-      this.winnerId = player.id;
+      this.winnerId = player.userId || null; // ← Usar userId en vez de socketId
       this.lastAction = `${player.name} ganó la partida. ¡Felicitaciones!`;
       this.log(this.lastAction);
       this.broadcast();
+
+      // Actualizar estadísticas de usuarios
+      this.updateUserStatistics(player.id).catch((err) =>
+        console.error("Error actualizando estadísticas:", err)
+      );
 
       // Agregar acción de finalización
       this.addAction("finish", playerId, this.lastAction).catch((err) =>
@@ -863,9 +880,27 @@ class Game {
         // Crear registros de jugadores
         for (let i = 0; i < this.players.length; i++) {
           const player = this.players[i];
+          console.log(
+            `🔍 [DEBUG] Guardando jugador - name: ${player.name}, userId: ${player.userId}, socketId: ${player.id}`
+          );
+
+          // Validar que userId sea un UUID válido o null
+          const isValidUUID =
+            player.userId &&
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+              player.userId
+            );
+          const userIdToSave = isValidUUID ? player.userId : null;
+
+          if (player.userId && !isValidUUID) {
+            console.warn(
+              `⚠️  userId inválido para ${player.name}: ${player.userId} - guardando como null`
+            );
+          }
+
           const playerRecord = await GamePlayer.create({
             gameId: this.dbGameId,
-            userId: player.userId || null,
+            userId: userIdToSave,
             playerName: player.name,
             socketId: player.id,
             connected: player.connected,
@@ -961,6 +996,111 @@ class Game {
       }
     } catch (error) {
       console.error(`Error actualizando conexión de jugador:`, error.message);
+    }
+  }
+
+  /**
+   * Actualiza las estadísticas de todos los usuarios que participaron en la partida
+   */
+  async updateUserStatistics(winnerPlayerId) {
+    if (!User || !GameAction || !this.dbGameId) {
+      return;
+    }
+
+    try {
+      console.log(
+        `📊 Actualizando estadísticas para partida ${this.roomId}...`
+      );
+
+      // Calcular duración de la partida
+      const duration = this.startedAt
+        ? Math.floor((Date.now() - this.startedAt) / 1000)
+        : 0;
+
+      // Obtener todas las acciones del juego para contar cartas especiales y jodetes
+      const actions = await GameAction.findAll({
+        where: { gameId: this.dbGameId },
+      });
+
+      // Procesar cada jugador
+      for (const player of this.players) {
+        if (!player.userId) {
+          console.log(`   ⏭️  Jugador ${player.name} es invitado, saltando`);
+          continue; // Saltar invitados
+        }
+
+        const user = await User.findByPk(player.userId);
+        if (!user) {
+          console.log(`   ⚠️  Usuario ${player.userId} no encontrado`);
+          continue;
+        }
+
+        // Incrementar partidas jugadas
+        user.gamesPlayed += 1;
+
+        // Si este jugador ganó, incrementar victorias
+        if (player.id === winnerPlayerId) {
+          user.gamesWon += 1;
+        }
+
+        // Contar cartas especiales jugadas por este jugador
+        const gamePlayerId = this.dbPlayerIds.get(player.id);
+        const playerActions = actions.filter(
+          (action) => action.gamePlayerId === gamePlayerId && action.cardPlayed
+        );
+
+        for (const action of playerActions) {
+          try {
+            const card = JSON.parse(action.cardPlayed);
+
+            // Contar cartas especiales
+            if (card.value === 2) user.specialCards2 += 1;
+            if (card.value === 4) user.specialCards4 += 1;
+            if (card.value === 10) user.specialCards10 += 1;
+            if (card.value === 11) user.specialCards11 += 1;
+            if (card.value === 12) user.specialCards12 += 1;
+          } catch {
+            // Ignorar si no se puede parsear la carta
+          }
+        }
+
+        // Contar jodetes (acciones con tipo "jodete")
+        const jodeteActions = actions.filter(
+          (action) =>
+            action.gamePlayerId === gamePlayerId &&
+            action.actionType === "jodete"
+        );
+        user.jodetesUsed += jodeteActions.length;
+
+        // Sumar tiempo total de juego
+        user.totalPlayTime += duration;
+
+        // Guardar cambios
+        await user.save();
+        console.log(
+          `   ✅ ${user.name}: ${user.gamesPlayed} partidas, ${user.gamesWon} ganadas`
+        );
+
+        // Emitir evento al jugador para que actualice sus estadísticas en el frontend
+        const socket = this.io.sockets.sockets.get(player.id);
+        if (socket && socket.connected) {
+          socket.emit("statsUpdated", {
+            gamesPlayed: user.gamesPlayed,
+            gamesWon: user.gamesWon,
+            message: "Tus estadísticas han sido actualizadas",
+          });
+          console.log(
+            `   📤 Notificación de estadísticas enviada a ${user.name}`
+          );
+        }
+      }
+
+      console.log(`📊 Estadísticas actualizadas correctamente`);
+    } catch (error) {
+      console.error(
+        `Error actualizando estadísticas de usuarios:`,
+        error.message
+      );
     }
   }
 }

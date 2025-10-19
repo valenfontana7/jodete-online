@@ -5,18 +5,38 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Server } from "socket.io";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import passport from "./auth/passport.js";
+import authRoutes from "./routes/auth.js";
+import { verifyToken } from "./auth/jwt.js";
 import { GameManager } from "./gameManager.js";
 import { connectDatabase } from "./db/index.js";
 
 const PORT = Number(process.env.PORT) || 3001;
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 const CLIENT_ORIGINS = process.env.CLIENT_ORIGINS
   ? process.env.CLIENT_ORIGINS.split(",")
       .map((origin) => origin.trim())
       .filter(Boolean)
-  : null;
+  : [FRONTEND_URL];
 
 const app = express();
 const httpServer = createServer(app);
+
+// Middlewares
+app.use(express.json());
+app.use(cookieParser());
+app.use(
+  cors({
+    origin: CLIENT_ORIGINS,
+    credentials: true,
+  })
+);
+app.use(passport.initialize());
+
+// Rutas de autenticación
+app.use("/auth", authRoutes);
 
 const io = new Server(httpServer, {
   cors: CLIENT_ORIGINS
@@ -28,6 +48,35 @@ const io = new Server(httpServer, {
   maxHttpBufferSize: 1e6,
   transports: ["websocket", "polling"],
   allowEIO3: true,
+});
+
+// Middleware para autenticar sockets
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  console.log(
+    `🔍 [SERVER] Middleware - Socket ${socket.id}, token presente: ${!!token}`
+  );
+
+  if (token) {
+    try {
+      const decoded = verifyToken(token);
+      // Soportar tanto tokens antiguos (id) como nuevos (userId)
+      socket.userId = decoded.userId || decoded.id || null;
+      console.log(
+        `✅ Socket ${socket.id} autenticado como userId: ${socket.userId}`
+      );
+    } catch (err) {
+      console.log(
+        `❌ Token inválido para socket ${socket.id}: ${err.message}, continuando como invitado`
+      );
+      socket.userId = null;
+    }
+  } else {
+    console.log(`👤 Socket ${socket.id} sin token, continuando como invitado`);
+    socket.userId = null; // Usuario invitado
+  }
+
+  next();
 });
 
 const manager = new GameManager(io);
