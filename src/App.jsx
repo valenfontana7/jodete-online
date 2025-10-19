@@ -433,6 +433,27 @@ function App() {
       return;
     }
 
+    // No mostrar overlay para jugadas regulares cuando hay jugadores con 1 carta
+    // Esto permite que el botón "Jodete" sea clickeable sin interrupciones
+    const isRegularPlay =
+      message.includes("jugó") &&
+      !message.includes("ganó") &&
+      !message.includes("¡Jodete!");
+
+    // Verificar si hay jugadores con 1 carta que no avisaron (posibles objetivos de Jodete)
+    const hasJodeteTargets = gameState?.players?.some(
+      (player) =>
+        player.id !== gameState?.me?.id &&
+        player.cardCount === 1 &&
+        !player.declaredLastCard &&
+        player.connected
+    );
+
+    if (isRegularPlay && hasJodeteTargets) {
+      setActionOverlay(null);
+      return;
+    }
+
     setActionOverlay({
       text: message,
       timestamp: Date.now(),
@@ -441,7 +462,12 @@ function App() {
       setActionOverlay(null);
       overlayTimeoutRef.current = null;
     }, 2600);
-  }, [gameState?.lastAction, gameState?.me?.name]);
+  }, [
+    gameState?.lastAction,
+    gameState?.me?.name,
+    gameState?.players,
+    gameState?.me?.id,
+  ]);
 
   useEffect(
     () => () => {

@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import { createServer } from "node:http";
 import path from "node:path";
@@ -5,6 +6,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Server } from "socket.io";
 import { GameManager } from "./gameManager.js";
+import { connectDatabase } from "./db/index.js";
 
 const PORT = Number(process.env.PORT) || 3001;
 const CLIENT_ORIGINS = process.env.CLIENT_ORIGINS
@@ -180,10 +182,6 @@ io.on("connection", (socket) => {
   });
 });
 
-httpServer.listen(PORT, () => {
-  console.log(`Servidor escuchando en el puerto ${PORT}`);
-});
-
 // Keep-alive para evitar sleep mode en Render (plan gratuito)
 if (process.env.NODE_ENV === "production") {
   const RENDER_URL = process.env.RENDER_EXTERNAL_URL;
@@ -222,4 +220,32 @@ process.on("uncaughtException", (error) => {
 process.on("unhandledRejection", (reason) => {
   console.error("Promesa rechazada no manejada:", reason);
   // No cerrar el servidor, intentar continuar
+});
+
+// Conectar a la base de datos y luego iniciar el servidor
+connectDatabase().then(async (connected) => {
+  if (!connected && process.env.NODE_ENV === "production") {
+    console.error("❌ No se pudo conectar a la base de datos en producción");
+    process.exit(1);
+  }
+
+  if (!connected) {
+    console.warn(
+      "⚠️  Servidor iniciando sin conexión a base de datos (modo desarrollo sin DB)"
+    );
+  }
+
+  // Cargar partidas activas si hay conexión a DB
+  if (connected) {
+    await manager.loadActiveGames();
+    manager.startPeriodicCleanup();
+  }
+
+  httpServer.listen(PORT, () => {
+    console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+    console.log(`   Modo: ${process.env.NODE_ENV || "development"}`);
+    if (connected) {
+      console.log(`   Base de datos: Conectada ✅`);
+    }
+  });
 });

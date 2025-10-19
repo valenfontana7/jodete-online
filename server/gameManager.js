@@ -1,11 +1,72 @@
 import { v4 as uuidv4 } from "uuid";
 import { Game } from "./game.js";
+import { Game as GameModel, GamePlayer } from "./db/index.js";
+import { Op } from "sequelize";
 
 class GameManager {
   constructor(io) {
     this.io = io;
     this.rooms = new Map();
     this.playerToRoom = new Map();
+  }
+
+  /**
+   * Carga partidas activas desde la base de datos al iniciar el servidor
+   */
+  async loadActiveGames() {
+    if (!GameModel) {
+      console.log(
+        "⚠️  No hay conexión a base de datos, saltando carga de partidas"
+      );
+      return;
+    }
+
+    try {
+      console.log("📥 Cargando partidas activas desde base de datos...");
+
+      const activeGames = await GameModel.findAll({
+        where: {
+          phase: ["lobby", "playing"],
+        },
+        include: [
+          {
+            model: GamePlayer,
+            as: "players",
+          },
+        ],
+      });
+
+      if (activeGames.length === 0) {
+        console.log("   No hay partidas activas para cargar");
+        return;
+      }
+
+      console.log(`   Encontradas ${activeGames.length} partida(s) activa(s)`);
+
+      for (const gameRecord of activeGames) {
+        try {
+          // Marcar todas las partidas antiguas como abandonadas
+          // (los jugadores se reconectarán si están disponibles)
+          await GameModel.update(
+            { phase: "abandoned" },
+            { where: { id: gameRecord.id } }
+          );
+
+          console.log(
+            `   ⚠️  Partida ${gameRecord.roomId} marcada como abandonada (requiere reconexión)`
+          );
+        } catch (error) {
+          console.error(
+            `   Error procesando partida ${gameRecord.roomId}:`,
+            error.message
+          );
+        }
+      }
+
+      console.log("✅ Carga de partidas completada");
+    } catch (error) {
+      console.error("❌ Error cargando partidas activas:", error.message);
+    }
   }
 
   createRoom({ name }) {
@@ -167,6 +228,54 @@ class GameManager {
       throw new Error("La sala seleccionada ya no existe");
     }
     return handler(room.game, room, roomId);
+  }
+
+  /**
+   * Limpia partidas abandonadas antiguas de la base de datos
+   * Se ejecuta periódicamente
+   */
+  async cleanupOldGames() {
+    if (!GameModel) {
+      return;
+    }
+
+    try {
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+      const result = await GameModel.destroy({
+        where: {
+          phase: "abandoned",
+          updatedAt: {
+            [Op.lt]: threeDaysAgo,
+          },
+        },
+      });
+
+      if (result > 0) {
+        console.log(
+          `🗑️  Limpiadas ${result} partida(s) abandonada(s) antigua(s)`
+        );
+      }
+    } catch (error) {
+      console.error("Error limpiando partidas antiguas:", error.message);
+    }
+  }
+
+  /**
+   * Inicia la limpieza periódica de partidas abandonadas
+   * Se ejecuta cada 24 horas
+   */
+  startPeriodicCleanup() {
+    // Limpiar inmediatamente al iniciar
+    this.cleanupOldGames();
+
+    // Limpiar cada 24 horas
+    setInterval(() => {
+      this.cleanupOldGames();
+    }, 24 * 60 * 60 * 1000);
+
+    console.log("🔄 Limpieza periódica de partidas activada (cada 24h)");
   }
 }
 

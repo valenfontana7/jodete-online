@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import { Game as GameModel, GamePlayer, GameAction } from "./db/index.js";
 
 const SUITS = ["oros", "copas", "espadas", "bastos"];
 const SUIT_LABELS = {
@@ -24,6 +25,13 @@ class Game {
     this.roomName = roomName;
     this.onStateChange = onStateChange;
     this.createdAt = Date.now();
+
+    // Variables para persistencia en base de datos
+    this.dbGameId = null; // ID en la base de datos
+    this.dbPlayerIds = new Map(); // Map de socketId -> gamePlayerId
+    this.turnNumber = 0; // Contador de turnos
+    this.startedAt = null; // Timestamp de inicio
+
     this.reset();
   }
 
@@ -183,6 +191,10 @@ class Game {
         `[Game.start] Repartiendo ${handSize} cartas a ${activePlayers.length} jugadores...`
       );
 
+      // Guardar timestamp de inicio y cardsPerPlayer
+      this.startedAt = new Date();
+      this.cardsPerPlayer = handSize;
+
       activePlayers.forEach((player) => {
         player.hand = [];
         player.declaredLastCard = false;
@@ -228,7 +240,13 @@ class Game {
       console.log(
         `[Game.start] Partida iniciada exitosamente. Jugadores activos: ${activePlayers.length}, Cartas por jugador: ${handSize}`
       );
+
       this.broadcast();
+
+      // Agregar acción de inicio al historial
+      this.addAction("start", requesterId, this.lastAction).catch((err) =>
+        console.error("Error agregando acción de inicio:", err)
+      );
     } catch (error) {
       console.error(`[Game.start] ERROR CRÍTICO:`, error);
       console.error(`[Game.start] Stack:`, error.stack);
@@ -315,7 +333,17 @@ class Game {
 
     if (this.pendingDraw > 0) {
       this.grantPendingDraw(player);
-      this.advanceTurn();
+
+      // Verificar si el jugador tiene cartas jugables después de recibir la penalización
+      const hasPlayableCards = player.hand.some((handCard) =>
+        this.isPlayable(handCard)
+      );
+
+      if (!hasPlayableCards) {
+        // Solo avanzar el turno si no tiene cartas jugables
+        this.advanceTurn();
+      }
+
       this.broadcast();
       return;
     }
@@ -346,13 +374,31 @@ class Game {
     this.lastAction = message;
     this.log(message);
     this.broadcast();
+
+    // Agregar acción de robar al historial
+    this.addAction("draw", playerId, message).catch((err) =>
+      console.error("Error agregando acción de robar:", err)
+    );
   }
 
   grantPendingDraw(player) {
     for (let i = 0; i < this.pendingDraw; i += 1) {
       player.hand.push(this.drawCard());
     }
-    const message = `${player.name} recibió ${this.pendingDraw} carta(s) por acumulación de doses.`;
+
+    // Verificar si tiene cartas jugables después de recibir las cartas
+    const hasPlayableCards = player.hand.some((handCard) =>
+      this.isPlayable(handCard)
+    );
+
+    let message = `${player.name} recibió ${this.pendingDraw} carta(s) por acumulación de doses.`;
+
+    if (hasPlayableCards) {
+      message += " Puede jugar inmediatamente.";
+    } else {
+      message += " No tiene cartas jugables, pasa el turno.";
+    }
+
     this.log(message);
     this.lastAction = message;
     this.pendingDraw = 0;
@@ -453,6 +499,11 @@ class Game {
       this.lastAction = `${player.name} ganó la partida. ¡Felicitaciones!`;
       this.log(this.lastAction);
       this.broadcast();
+
+      // Agregar acción de finalización
+      this.addAction("finish", playerId, this.lastAction).catch((err) =>
+        console.error("Error agregando acción de finalización:", err)
+      );
       return;
     }
 
@@ -461,6 +512,11 @@ class Game {
     }
 
     this.broadcast();
+
+    // Agregar acción de jugar carta al historial
+    this.addAction("play", playerId, message, card).catch((err) =>
+      console.error("Error agregando acción de jugar:", err)
+    );
   }
 
   describeCard(card) {
@@ -512,6 +568,8 @@ class Game {
     this.currentPlayerIndex = this.modIndex(
       this.currentPlayerIndex + steps * this.direction
     );
+    // Incrementar contador de turnos
+    this.turnNumber++;
   }
 
   modIndex(value) {
@@ -526,8 +584,14 @@ class Game {
       throw new Error("Solo puedes avisar cuando tienes una carta");
     }
     player.declaredLastCard = true;
-    this.log(`${player.name} declaró su última carta.`);
+    const message = `${player.name} declaró su última carta.`;
+    this.log(message);
     this.broadcast();
+
+    // Agregar acción al historial
+    this.addAction("declare", playerId, message).catch((err) =>
+      console.error("Error agregando acción de declarar:", err)
+    );
   }
 
   handleCallJodete({ playerId, targetId }) {
@@ -540,8 +604,14 @@ class Game {
       throw new Error("No aplica el jodete en este momento");
     }
     this.penalize(target, 2, "No avisó última carta");
-    this.log(`${caller.name} dijo ¡Jodete! a ${target.name}.`);
+    const message = `${caller.name} dijo ¡Jodete! a ${target.name}.`;
+    this.log(message);
     this.broadcast();
+
+    // Agregar acción al historial
+    this.addAction("jodete", playerId, message).catch((err) =>
+      console.error("Error agregando acción de jodete:", err)
+    );
   }
 
   handleReset({ requesterId }) {
@@ -624,6 +694,11 @@ class Game {
       `[broadcast] Completado: ${successCount} exitosos, ${errorCount} errores`
     );
     this.onStateChange?.();
+
+    // Guardar estado en base de datos (async, no bloquear)
+    this.saveToDatabase().catch((err) =>
+      console.error("Error en saveToDatabase:", err)
+    );
   }
 
   buildStateForPlayer(requesterId) {
@@ -733,6 +808,159 @@ class Game {
     this.messages.push(message);
     if (this.messages.length > 200) {
       this.messages.shift();
+    }
+  }
+
+  // ==================== MÉTODOS DE PERSISTENCIA ====================
+
+  /**
+   * Guarda el estado actual de la partida en la base de datos
+   */
+  async saveToDatabase() {
+    // Si no hay conexión a DB, salir silenciosamente
+    if (!GameModel) {
+      return;
+    }
+
+    try {
+      const gameData = {
+        roomId: this.roomId,
+        phase: this.phase,
+        cardsPerPlayer: this.cardsPerPlayer,
+        totalTurns: this.turnNumber,
+        gameState: {
+          deck: this.drawPile,
+          discardPile: this.discardPile,
+          currentPlayerIndex: this.currentPlayerIndex,
+          pendingDraw: this.pendingDraw,
+          direction: this.direction,
+          topCard: this.topCard,
+          currentSuitOverride: this.currentSuitOverride,
+          repeatConstraint: this.repeatConstraint,
+        },
+        startedAt: this.startedAt,
+        finishedAt: this.phase === "finished" ? new Date() : null,
+        winnerId: this.winnerId || null,
+      };
+
+      // Calcular duración si la partida terminó
+      if (this.startedAt && gameData.finishedAt) {
+        gameData.duration = Math.floor(
+          (gameData.finishedAt - this.startedAt) / 1000
+        );
+      }
+
+      if (this.dbGameId) {
+        // Actualizar partida existente
+        await GameModel.update(gameData, {
+          where: { id: this.dbGameId },
+        });
+      } else {
+        // Crear nueva partida en la base de datos
+        const gameRecord = await GameModel.create(gameData);
+        this.dbGameId = gameRecord.id;
+
+        // Crear registros de jugadores
+        for (let i = 0; i < this.players.length; i++) {
+          const player = this.players[i];
+          const playerRecord = await GamePlayer.create({
+            gameId: this.dbGameId,
+            userId: player.userId || null,
+            playerName: player.name,
+            socketId: player.id,
+            connected: player.connected,
+            position: i + 1,
+          });
+          this.dbPlayerIds.set(player.id, playerRecord.id);
+        }
+      }
+
+      console.log(
+        `💾 Partida ${this.roomId} guardada en DB (ID: ${this.dbGameId})`
+      );
+    } catch (error) {
+      console.error(`Error guardando partida ${this.roomId}:`, error.message);
+    }
+  }
+
+  /**
+   * Agrega una acción al historial de la partida
+   */
+  async addAction(actionType, playerId, description, cardPlayed = null) {
+    // Si no hay conexión a DB o la partida no está guardada, salir
+    if (!GameAction || !this.dbGameId) {
+      return;
+    }
+
+    try {
+      const gamePlayerId = this.dbPlayerIds.get(playerId);
+
+      await GameAction.create({
+        gameId: this.dbGameId,
+        gamePlayerId: gamePlayerId || null,
+        actionType,
+        description,
+        cardPlayed: cardPlayed ? JSON.stringify(cardPlayed) : null,
+        turnNumber: this.turnNumber,
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      console.error(`Error agregando acción a DB:`, error.message);
+    }
+  }
+
+  /**
+   * Carga una partida desde la base de datos
+   */
+  static async loadFromDatabase(roomId) {
+    if (!GameModel) {
+      return null;
+    }
+
+    try {
+      const gameRecord = await GameModel.findOne({
+        where: {
+          roomId,
+          phase: ["lobby", "playing"],
+        },
+        include: [
+          {
+            model: GamePlayer,
+            as: "players",
+          },
+        ],
+      });
+
+      if (!gameRecord) {
+        return null;
+      }
+
+      console.log(`📥 Partida ${roomId} cargada desde DB`);
+      return gameRecord;
+    } catch (error) {
+      console.error(`Error cargando partida ${roomId}:`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Actualiza el contador de jugadores desconectados/conectados
+   */
+  async updatePlayerConnection(playerId, connected) {
+    if (!GamePlayer || !this.dbGameId) {
+      return;
+    }
+
+    try {
+      const gamePlayerId = this.dbPlayerIds.get(playerId);
+      if (gamePlayerId) {
+        await GamePlayer.update(
+          { connected, socketId: connected ? playerId : null },
+          { where: { id: gamePlayerId } }
+        );
+      }
+    } catch (error) {
+      console.error(`Error actualizando conexión de jugador:`, error.message);
     }
   }
 }
