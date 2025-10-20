@@ -178,7 +178,7 @@ class Game {
       if (this.players.length <= 1) {
         this.phase = "finished";
         if (this.players.length === 1) {
-          this.winnerId = this.players[0].id;
+          this.winnerId = this.players[0].userId || null;
           this.log(
             `${this.players[0].name} gana por abandono de los demás jugadores.`
           );

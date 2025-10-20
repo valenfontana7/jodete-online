@@ -1,60 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import "./App.css";
-import SuitIcon from "./SuitIcon";
 import LoginButton from "./components/LoginButton";
 import Rankings from "./components/Rankings";
+import RoomSelector from "./components/RoomSelector";
+import PlayersList from "./components/PlayersList";
+import LobbyControls from "./components/LobbyControls";
+import GameBoard from "./components/GameBoard";
+import PlayerHand from "./components/PlayerHand";
+import GameLog from "./components/GameLog";
+import SuitSelector from "./components/SuitSelector";
 import { useAuth } from "./contexts/AuthContext";
-
-// Metadatos de los palos de la baraja española
-const SUIT_META = [
-  {
-    id: "oros",
-    label: "Oros",
-    tone: "suit-gold",
-  },
-  {
-    id: "copas",
-    label: "Copas",
-    tone: "suit-red",
-  },
-  {
-    id: "espadas",
-    label: "Espadas",
-    tone: "suit-blue",
-  },
-  {
-    id: "bastos",
-    label: "Bastos",
-    tone: "suit-green",
-  },
-];
-
-const VALUE_NAMES = {
-  1: "As",
-  2: "Dos",
-  3: "Tres",
-  4: "Cuatro",
-  5: "Cinco",
-  6: "Seis",
-  7: "Siete",
-  10: "Diez",
-  11: "Once",
-  12: "Doce",
-};
-
-const VALUE_SIGNS = {
-  1: "A",
-  2: "2",
-  3: "3",
-  4: "4",
-  5: "5",
-  6: "6",
-  7: "7",
-  10: "10",
-  11: "11",
-  12: "12",
-};
+import { SUIT_META } from "./constants/gameConstants";
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -66,17 +23,6 @@ function hashString(input) {
     hash |= 0;
   }
   return Math.abs(hash);
-}
-
-function getCardTilt(id) {
-  const hash = hashString(`tilt:${id}`);
-  const offset = (hash % 7) - 3;
-  return offset * 0.6;
-}
-
-function getCardGrainAngle(id) {
-  const hash = hashString(`grain:${id}`);
-  return hash % 360;
 }
 
 const SUIT_INDEX = SUIT_META.reduce((acc, suit, index) => {
@@ -135,18 +81,6 @@ const FLASH_DURATIONS = {
   victory: 1600,
   defeat: 1600,
 };
-
-function describeCard(card) {
-  if (!card) return "";
-  const suit = SUIT_META.find((item) => item.id === card.suit);
-  const value = VALUE_NAMES[card.value] ?? card.value;
-  return `${value} de ${suit?.label ?? card.suit}`;
-}
-
-function formatTimestamp(timestamp) {
-  const date = new Date(timestamp);
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
 
 function App() {
   const { getToken, isAuthenticated, refreshUser } = useAuth();
@@ -949,518 +883,76 @@ function App() {
       </header>
 
       {!hasJoined && (
-        <section
-          className="panel join-panel"
-          style={{ "--panel-delay": "40ms" }}
-        >
-          <h2>Sumate a la mesa</h2>
-          <p className="panel-subtitle">
-            Ingresá tu nombre y elegí una sala o creá una nueva.
-          </p>
-          <form className="join-form" onSubmit={handleJoinSubmit}>
-            <input
-              className="text-input"
-              placeholder="Tu nombre o apodo"
-              maxLength={32}
-              value={nameInput}
-              onChange={(event) => setNameInput(event.target.value)}
-              disabled={
-                !socketConnected || pendingJoin || pendingLeave || !roomsLoaded
-              }
-            />
-            <button
-              type="submit"
-              className="primary"
-              disabled={
-                !socketConnected || pendingJoin || pendingLeave || !roomsLoaded
-              }
-            >
-              {pendingJoin
-                ? "Conectando..."
-                : !roomsLoaded
-                ? "Sincronizando..."
-                : selectedRoomId
-                ? "Unirme a sala"
-                : "Crear sala nueva"}
-            </button>
-          </form>
-          {!roomsLoaded ? (
-            <p className="hint">Sincronizando salas disponibles...</p>
-          ) : rooms.length > 0 ? (
-            <div className="rooms-panel">
-              <p className="hint">
-                {joinableRooms.length
-                  ? selectedRoomId
-                    ? "Seleccionaste una sala. Presioná 'Unirme' o elegí 'Crear sala nueva' deseleccionando."
-                    : "Salas disponibles (hacé click para unirte) o creá una nueva:"
-                  : "Solo hay partidas finalizadas. Creá una sala nueva."}
-              </p>
-              <div className="rooms-list">
-                {rooms.map((room) => {
-                  const isSelected = selectedRoomId === room.id;
-                  const phaseKey = room.phase ?? "lobby";
-                  const isJoinable = room.phase !== "finished";
-                  const cardClass = `room-card${
-                    isSelected ? " room-card--active" : ""
-                  }${isJoinable ? "" : " room-card--disabled"}`;
-                  return (
-                    <button
-                      type="button"
-                      key={room.id}
-                      className={cardClass}
-                      onClick={() =>
-                        setSelectedRoomId(isSelected ? null : room.id)
-                      }
-                      disabled={!isJoinable || pendingJoin || pendingLeave}
-                    >
-                      <div className="room-card__info">
-                        <span className="room-name">{room.name}</span>
-                        {room.hostName && (
-                          <span className="room-host">👑 {room.hostName}</span>
-                        )}
-                        <div className="room-card__people">
-                          {room.players.map((player) => (
-                            <span
-                              key={player.id}
-                              className={`room-player-chip${
-                                player.connected
-                                  ? ""
-                                  : " room-player-chip--away"
-                              }`}
-                            >
-                              {player.name}
-                            </span>
-                          ))}
-                          {!room.players.length && (
-                            <span className="room-player-chip room-player-chip--empty">
-                              Sala vacía
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="room-card__meta">
-                        <span className={`room-phase room-phase--${phaseKey}`}>
-                          {describeRoomPhase(phaseKey)}
-                        </span>
-                        <span className="room-card__players">
-                          👥 {room.playerCount}
-                        </span>
-                        {room.phase === "finished" && (
-                          <span className="room-note">Finalizada</span>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <p className="hint">
-              No hay salas activas. Se creará una nueva sala cuando te unas.
-            </p>
-          )}
-          {error && <p className="error-banner">{error}</p>}
-          {joinableRooms.length > 0 && (
-            <p className="hint hint--tip">
-              💡 Tip: Hacé click en una sala para unirte, o dejala sin
-              seleccionar para crear una nueva.
-            </p>
-          )}
-          <p className="hint">
-            Compartí la URL de esta página para invitar a otros jugadores.
-          </p>
-        </section>
+        <RoomSelector
+          rooms={rooms}
+          roomsLoaded={roomsLoaded}
+          joinableRooms={joinableRooms}
+          selectedRoomId={selectedRoomId}
+          nameInput={nameInput}
+          socketConnected={socketConnected}
+          pendingJoin={pendingJoin}
+          pendingLeave={pendingLeave}
+          error={error}
+          onNameInputChange={setNameInput}
+          onRoomSelect={setSelectedRoomId}
+          onJoinSubmit={handleJoinSubmit}
+        />
       )}
 
       {hasJoined && (
         <div className="layout-grid">
-          <section
-            className="panel players-panel"
-            style={{ "--panel-delay": "0ms" }}
+          <PlayersList
+            displayPlayers={displayPlayers}
+            gameState={gameState}
+            isHost={isHost}
+            me={me}
+            pendingLeave={pendingLeave}
+            handleLeaveRoom={handleLeaveRoom}
+            handleCallJodete={handleCallJodete}
           >
-            <header className="panel-header">
-              <div className="panel-heading">
-                <h2>Jugadores</h2>
-                {gameState?.roomName && (
-                  <span className="panel-caption">
-                    Sala: <br />
-                    {gameState.roomName}
-                  </span>
-                )}
-              </div>
-              <div className="panel-controls">
-                {isHost && <span className="badge">Anfitrión</span>}
-                <button
-                  type="button"
-                  className="ghost small leave-button"
-                  onClick={handleLeaveRoom}
-                  disabled={pendingLeave}
-                >
-                  {pendingLeave ? "Saliendo..." : "Salir de la sala"}
-                </button>
-              </div>
-            </header>
-            <ul className="players-list">
-              {displayPlayers.length ? (
-                displayPlayers.map((player, index) => (
-                  <li
-                    key={player.id}
-                    className={`player-row${
-                      player.isCurrent ? " player-row--turn" : ""
-                    }`}
-                    style={{ "--item-delay": `${index * 60}ms` }}
-                  >
-                    <div className="player-main">
-                      <span className="player-name">{player.name}</span>
-                      {player.isHost && <span className="tag">👑</span>}
-                      {!player.connected && (
-                        <span className="tag tag--disconnected">
-                          Desconectado
-                        </span>
-                      )}
-                      {player.isSummaryOnly && (
-                        <span className="tag tag--summary">Sincronizando</span>
-                      )}
-                    </div>
-                    <div className="player-meta">
-                      <span className="counter" title="Cartas en mano">
-                        🃏 {player.cardCount ?? "—"}
-                      </span>
-                      {player.declaredLastCard && (
-                        <span className="tag tag--safe">¡Avisó!</span>
-                      )}
-                      {player.id !== me?.id &&
-                        player.cardCount === 1 &&
-                        !player.declaredLastCard && (
-                          <button
-                            type="button"
-                            className="ghost small"
-                            onClick={() => handleCallJodete(player.id)}
-                            disabled={gameState?.phase !== "playing"}
-                          >
-                            ¡Jodete!
-                          </button>
-                        )}
-                    </div>
-                  </li>
-                ))
-              ) : (
-                <li className="player-placeholder">
-                  Aún no hay jugadores en esta sala.
-                </li>
-              )}
-            </ul>
-
             {gameState?.phase === "lobby" && (
-              <div className="lobby-controls">
-                <label className="control">
-                  <span>Cartas por jugador</span>
-                  <select
-                    value={cardsPerPlayer ?? ""}
-                    onChange={(event) =>
-                      setCardsPerPlayer(Number(event.target.value))
-                    }
-                    disabled={!isHost}
-                  >
-                    {(gameState?.cardsPerPlayerOptions ?? []).map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button
-                  type="button"
-                  className="primary"
-                  onClick={handleStart}
-                  disabled={!canStart}
-                >
-                  Comenzar partida
-                </button>
-              </div>
+              <LobbyControls
+                isHost={isHost}
+                cardsPerPlayer={cardsPerPlayer}
+                cardsPerPlayerOptions={gameState?.cardsPerPlayerOptions}
+                canStart={canStart}
+                onCardsPerPlayerChange={setCardsPerPlayer}
+                onStart={handleStart}
+              />
             )}
 
             {gameState?.phase === "finished" && isHost && (
-              <button type="button" className="primary" onClick={handleReset}>
+              <button
+                type="button"
+                className="primary"
+                onClick={handleReset}
+                style={{ marginTop: "1rem" }}
+              >
                 Nueva partida
               </button>
             )}
-          </section>
+          </PlayersList>
 
-          <section
-            className="panel board-panel"
-            style={{ "--panel-delay": "120ms" }}
+          <GameBoard
+            gameState={gameState}
+            lastActionKey={lastActionKey}
+            canDraw={canDraw}
+            canDeclareLastCard={canDeclareLastCard}
+            jodeteTargets={jodeteTargets}
+            onDraw={handleDraw}
+            onDeclareLastCard={handleDeclareLastCard}
+            onCallJodete={handleCallJodete}
           >
-            <header className="panel-header">
-              <h2>Tablero</h2>
-              {gameState?.lastAction && (
-                <span key={lastActionKey} className="last-action">
-                  {gameState.lastAction}
-                </span>
-              )}
-            </header>
+            <PlayerHand
+              hand={me?.hand}
+              sortedHand={sortedHand}
+              playableCards={playableCards}
+              isMyTurn={isMyTurn}
+              onPlayCard={handlePlayCard}
+            />
+          </GameBoard>
 
-            <div className="board-state">
-              <div className="board-info">
-                <div>
-                  <span className="label">Palo actual</span>
-                  <span className="value">
-                    {gameState?.currentSuit
-                      ? SUIT_META.find(
-                          (item) => item.id === gameState.currentSuit
-                        )?.label ?? gameState.currentSuit
-                      : "Libre"}
-                  </span>
-                </div>
-                <div>
-                  <span className="label">Sentido</span>
-                  <span className="value">
-                    {gameState?.direction === -1 ? "↺ Reversa" : "↻ Normal"}
-                  </span>
-                </div>
-                <div>
-                  <span className="label">Mazo</span>
-                  <span className="value">{gameState?.deckCount ?? 0}</span>
-                </div>
-                <div>
-                  <span className="label">Descartes</span>
-                  <span className="value">{gameState?.discardCount ?? 0}</span>
-                </div>
-                {gameState?.pendingDraw ? (
-                  <div className="pending">
-                    {`Próximo roba ${gameState.pendingDraw} carta(s)`}
-                  </div>
-                ) : null}
-                <button
-                  type="button"
-                  className="primary"
-                  onClick={handleDraw}
-                  disabled={!canDraw}
-                >
-                  Robar carta
-                </button>
-                <button
-                  type="button"
-                  className="ghost"
-                  onClick={handleDeclareLastCard}
-                  disabled={!canDeclareLastCard}
-                >
-                  Última carta
-                </button>
-                <div className="jodete-targets">
-                  {jodeteTargets.map((player, index) => (
-                    <button
-                      key={player.id}
-                      type="button"
-                      className="ghost"
-                      onClick={() => handleCallJodete(player.id)}
-                      disabled={gameState?.phase !== "playing"}
-                      style={{ animationDelay: `${index * 80}ms` }}
-                    >
-                      ¡Jodete {player.name}!
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="top-card">
-                <span className="label">Carta superior</span>
-                {gameState?.topCard ? (
-                  (() => {
-                    const suit = SUIT_META.find(
-                      (item) => item.id === gameState.topCard.suit
-                    );
-                    const valueName =
-                      VALUE_NAMES[gameState.topCard.value] ??
-                      gameState.topCard.value;
-                    const valueSign =
-                      VALUE_SIGNS[gameState.topCard.value] ??
-                      gameState.topCard.value;
-                    const cardId = gameState.topCard.id ?? "top-card";
-                    const cardStyle = {
-                      "--card-tilt": `${getCardTilt(cardId)}deg`,
-                      "--grain-angle": `${getCardGrainAngle(cardId)}deg`,
-                    };
-                    return (
-                      <div
-                        className={`card-tile card-tile--large ${
-                          suit?.tone ?? ""
-                        }`}
-                        aria-label={describeCard(gameState.topCard)}
-                        style={cardStyle}
-                      >
-                        <div className="card-face card-face--large">
-                          <span className="card-corner card-corner--top">
-                            <span className="card-corner-value">
-                              {valueSign}
-                            </span>
-                            <span className="card-corner-suit">
-                              <SuitIcon suit={suit?.id} />
-                            </span>
-                          </span>
-                          <div className="card-illustration">
-                            <div
-                              className="card-ornament-row card-ornament-row--top"
-                              aria-hidden="true"
-                            >
-                              <span className="card-ornament card-ornament--dot">
-                                ✶
-                              </span>
-                              <span className="card-ornament card-ornament--suit">
-                                <SuitIcon suit={suit?.id} />
-                              </span>
-                              <span className="card-ornament card-ornament--dot">
-                                ✶
-                              </span>
-                            </div>
-                            <span className="card-icon">
-                              <SuitIcon suit={suit?.id} />
-                            </span>
-                            <div
-                              className="card-ornament-row card-ornament-row--bottom"
-                              aria-hidden="true"
-                            >
-                              <span className="card-ornament card-ornament--dot">
-                                ✶
-                              </span>
-                              <span className="card-ornament card-ornament--suit">
-                                <SuitIcon suit={suit?.id} />
-                              </span>
-                              <span className="card-ornament card-ornament--dot">
-                                ✶
-                              </span>
-                            </div>
-                            <span className="card-ribbon">{valueName}</span>
-                          </div>
-                          <span className="card-corner card-corner--bottom">
-                            <span className="card-corner-value">
-                              {valueSign}
-                            </span>
-                            <span className="card-corner-suit">
-                              <SuitIcon suit={suit?.id} />
-                            </span>
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })()
-                ) : (
-                  <div className="card-placeholder">Mazo preparado</div>
-                )}
-              </div>
-            </div>
-
-            <section className="hand-section">
-              <header className="panel-header">
-                <h3>Tu mano ({me?.hand?.length ?? 0})</h3>
-                {isMyTurn ? (
-                  <span className="tag tag--turn">Tu turno</span>
-                ) : (
-                  <span className="tag">Esperando</span>
-                )}
-              </header>
-              <div className="hand-grid">
-                {sortedHand.map((card, index) => {
-                  const suit = SUIT_META.find((item) => item.id === card.suit);
-                  const playable = playableCards.has(card.id) && isMyTurn;
-                  const valueName = VALUE_NAMES[card.value] ?? card.value;
-                  const valueSign = VALUE_SIGNS[card.value] ?? card.value;
-                  const tileStyle = {
-                    "--item-delay": `${index * 40}ms`,
-                    "--card-tilt": `${getCardTilt(card.id)}deg`,
-                    "--grain-angle": `${getCardGrainAngle(card.id)}deg`,
-                  };
-                  return (
-                    <button
-                      type="button"
-                      key={card.id}
-                      className={`card-tile ${suit?.tone ?? ""} ${
-                        playable ? "card-tile--playable" : "card-tile--blocked"
-                      }`}
-                      onClick={() => handlePlayCard(card)}
-                      disabled={!playable}
-                      title={describeCard(card)}
-                      aria-label={describeCard(card)}
-                      style={tileStyle}
-                    >
-                      <div className="card-face">
-                        <span className="card-corner card-corner--top">
-                          <span className="card-corner-value">{valueSign}</span>
-                          <span className="card-corner-suit">
-                            <SuitIcon suit={suit?.id} />
-                          </span>
-                        </span>
-                        <div className="card-illustration">
-                          <div
-                            className="card-ornament-row card-ornament-row--top"
-                            aria-hidden="true"
-                          >
-                            <span className="card-ornament card-ornament--dot">
-                              ✶
-                            </span>
-                            <span className="card-ornament card-ornament--suit">
-                              <SuitIcon suit={suit?.id} />
-                            </span>
-                            <span className="card-ornament card-ornament--dot">
-                              ✶
-                            </span>
-                          </div>
-                          <span className="card-icon">
-                            <SuitIcon suit={suit?.id} />
-                          </span>
-                          <div
-                            className="card-ornament-row card-ornament-row--bottom"
-                            aria-hidden="true"
-                          >
-                            <span className="card-ornament card-ornament--dot">
-                              ✶
-                            </span>
-                            <span className="card-ornament card-ornament--suit">
-                              <SuitIcon suit={suit?.id} />
-                            </span>
-                            <span className="card-ornament card-ornament--dot">
-                              ✶
-                            </span>
-                          </div>
-                          <span className="card-ribbon">{valueName}</span>
-                        </div>
-                        <span className="card-corner card-corner--bottom">
-                          <span className="card-corner-value">{valueSign}</span>
-                          <span className="card-corner-suit">
-                            <SuitIcon suit={suit?.id} />
-                          </span>
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-                {!sortedHand.length && (
-                  <p className="empty-hint">Sin cartas en mano.</p>
-                )}
-              </div>
-            </section>
-          </section>
-
-          <section
-            className="panel log-panel"
-            style={{ "--panel-delay": "200ms" }}
-          >
-            <header className="panel-header">
-              <h2>Historial</h2>
-            </header>
-            <ul className="log-list">
-              {gameState?.messages
-                ?.slice()
-                .reverse()
-                .map((message) => (
-                  <li key={message.id}>
-                    <span className="log-time">
-                      {formatTimestamp(message.timestamp)}
-                    </span>
-                    <span className="log-text">{message.text}</span>
-                  </li>
-                ))}
-            </ul>
-          </section>
+          <GameLog messages={gameState?.messages} />
         </div>
       )}
 
@@ -1477,79 +969,10 @@ function App() {
       )}
 
       {suitPromptCardId && (
-        <div className="modal-backdrop">
-          <div className="modal">
-            <h3>Elegí el palo para el 10</h3>
-            <div className="suit-picker">
-              {SUIT_META.map((suit) => (
-                <button
-                  key={suit.id}
-                  type="button"
-                  className={`card-tile card-tile--tall ${suit.tone}`}
-                  onClick={() => confirmSuitSelection(suit.id)}
-                  style={{
-                    "--card-tilt": `${getCardTilt(`picker-${suit.id}`)}deg`,
-                    "--grain-angle": `${getCardGrainAngle(
-                      `picker-${suit.id}`
-                    )}deg`,
-                  }}
-                >
-                  <div className="card-face">
-                    <span className="card-corner card-corner--top">
-                      <span className="card-corner-value">10</span>
-                      <span className="card-corner-suit">🃏</span>
-                    </span>
-                    <div className="card-illustration">
-                      <div
-                        className="card-ornament-row card-ornament-row--top"
-                        aria-hidden="true"
-                      >
-                        <span className="card-ornament card-ornament--dot">
-                          ✶
-                        </span>
-                        <span className="card-ornament card-ornament--suit">
-                          <SuitIcon suit={suit.id} />
-                        </span>
-                        <span className="card-ornament card-ornament--dot">
-                          ✶
-                        </span>
-                      </div>
-                      <span className="card-icon">
-                        <SuitIcon suit={suit.id} />
-                      </span>
-                      <div
-                        className="card-ornament-row card-ornament-row--bottom"
-                        aria-hidden="true"
-                      >
-                        <span className="card-ornament card-ornament--dot">
-                          ✶
-                        </span>
-                        <span className="card-ornament card-ornament--suit">
-                          <SuitIcon suit={suit.id} />
-                        </span>
-                        <span className="card-ornament card-ornament--dot">
-                          ✶
-                        </span>
-                      </div>
-                      <span className="card-ribbon">{suit.label}</span>
-                    </div>
-                    <span className="card-corner card-corner--bottom">
-                      <span className="card-corner-value">10</span>
-                      <span className="card-corner-suit">🃏</span>
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              className="ghost"
-              onClick={cancelSuitSelection}
-            >
-              Cancelar
-            </button>
-          </div>
-        </div>
+        <SuitSelector
+          onConfirm={confirmSuitSelection}
+          onCancel={cancelSuitSelection}
+        />
       )}
 
       {showRankings && <Rankings onClose={() => setShowRankings(false)} />}

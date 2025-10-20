@@ -1,0 +1,133 @@
+.players-panel {
+  grid-area: players;
+  align-self: start;
+  height: fit-content;
+  min-height: auto;
+  max-height: calc(50vh - 10px);
+  overflow-y: auto;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-heading {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.panel-caption {
+  font-size: 0.85rem;
+  color: #4b5563;
+  font-weight: 500;
+  padding-top: 10px;
+}
+
+.panel-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.leave-button {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.panel-header h2,
+.panel-header h3 {
+  margin: 0;
+}
+
+.badge {
+  background: rgba(244, 114, 182, 0.2);
+  color: #be185d;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.players-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.player-row {
+  background: rgba(15, 23, 42, 0.04);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  animation: item-rise 0.45s ease;
+  animation-delay: var(--item-delay, 0s);
+}
+
+.player-placeholder {
+  text-align: center;
+  color: #6b7280;
+  font-weight: 500;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.03);
+  border-radius: 14px;
+}
+
+.player-row--turn {
+  border: 2px solid rgba(37, 99, 235, 0.4);
+  background: rgba(37, 99, 235, 0.12);
+  animation: glow-pulse 1.8s ease-in-out infinite;
+}
+
+.player-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.player-name {
+  font-weight: 600;
+}
+
+.player-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.counter {
+  font-weight: 600;
+}
+
+@keyframes item-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 14px rgba(37, 99, 235, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(37, 99, 235, 0.7);
+  }
+}
