@@ -66,14 +66,34 @@ const computeSocketUrl = () => {
 
 const SOCKET_URL = computeSocketUrl();
 
-const ROOM_PHASE_LABELS = {
-  lobby: "Esperando",
-  playing: "En juego",
-  finished: "Finalizada",
-};
+const MOBILE_SECTIONS = [
+  { id: "board", label: "Tablero", icon: "🎴" },
+  { id: "players", label: "Jugadores", icon: "👥" },
+  { id: "log", label: "Historial", icon: "📝" },
+];
 
-function describeRoomPhase(phase) {
-  return ROOM_PHASE_LABELS[phase] ?? "Desconocida";
+function useMediaQuery(query) {
+  const getMatches = () => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+    return window.matchMedia(query).matches;
+  };
+
+  const [matches, setMatches] = useState(getMatches);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return () => {};
+    }
+    const mediaQueryList = window.matchMedia(query);
+    const listener = (event) => setMatches(event.matches);
+    setMatches(mediaQueryList.matches);
+    mediaQueryList.addEventListener("change", listener);
+    return () => mediaQueryList.removeEventListener("change", listener);
+  }, [query]);
+
+  return matches;
 }
 
 const FLASH_DURATIONS = {
@@ -114,6 +134,16 @@ function App() {
     () => rooms.filter((room) => room.phase !== "finished"),
     [rooms]
   );
+  const isMobile = useMediaQuery("(max-width: 720px)");
+  const [mobileSection, setMobileSection] = useState("board");
+  const [showMobileUtility, setShowMobileUtility] = useState(false);
+
+  useEffect(() => {
+    if (!isMobile) {
+      setMobileSection("board");
+      setShowMobileUtility(false);
+    }
+  }, [isMobile]);
 
   useEffect(() => {
     const authToken = getToken();
@@ -844,43 +874,64 @@ function App() {
   const flashClassName = flashVariant
     ? `screen-flash screen-flash--${flashVariant}`
     : "screen-flash";
+  const connectionLabel = socketConnected
+    ? "Conectado"
+    : socket
+    ? "Reconectando..."
+    : "Desconectado";
+  const connectionState = socketConnected
+    ? "online"
+    : socket
+    ? "reconnecting"
+    : "offline";
+  const headerClassName = [
+    "app-header",
+    hasJoined ? "app-header--playing" : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const showTagline = !hasJoined && !isMobile;
+  const statusChipLabel = phaseLabel
+    ? `${connectionLabel} · ${phaseLabel}`
+    : connectionLabel;
 
   return (
     <div className="app-shell">
       <div className={flashClassName} aria-hidden="true" />
-      <header className="app-header">
-        <div className="branding">
-          <h1>Jodete 🫵🏼</h1>
-          <p>Baraja española, partidas en tiempo real.</p>
-        </div>
-        <div className="header-controls">
-          <div className="status-badges">
-            <div className="status-indicator">
-              <span
-                className={
-                  socketConnected ? "dot dot--online" : "dot dot--offline"
-                }
-              />
-              <span>
-                {socketConnected
-                  ? "Conectado"
-                  : socket
-                  ? "Reconectando..."
-                  : "Desconectado"}
-              </span>
+      {!isMobile && (
+        <header className={headerClassName}>
+          <div className="header-row">
+            <div className="branding">
+              <h1>Jodete 🫵🏼</h1>
+              {showTagline && (
+                <p className="brand-tagline">
+                  Baraja española, partidas en tiempo real.
+                </p>
+              )}
             </div>
-            <span className="phase-badge">{phaseLabel}</span>
+            <span
+              className={`status-chip status-chip--${connectionState}`}
+              title={statusChipLabel}
+              role="status"
+              aria-live="polite"
+            >
+              <span className="status-chip__dot" aria-hidden="true" />
+              <span className="status-chip__text">{statusChipLabel}</span>
+            </span>
+            <div className="header-actions">
+              <button
+                className="rankings-button"
+                onClick={() => setShowRankings(true)}
+                title="Ver Rankings"
+                type="button"
+              >
+                🏆
+              </button>
+              <LoginButton />
+            </div>
           </div>
-          <button
-            className="rankings-button"
-            onClick={() => setShowRankings(true)}
-            title="Ver Rankings"
-          >
-            🏆
-          </button>
-          <LoginButton />
-        </div>
-      </header>
+        </header>
+      )}
 
       {!hasJoined && (
         <RoomSelector
@@ -899,62 +950,206 @@ function App() {
         />
       )}
 
-      {hasJoined && (
-        <div className="layout-grid">
-          <PlayersList
-            displayPlayers={displayPlayers}
-            gameState={gameState}
-            isHost={isHost}
-            me={me}
-            pendingLeave={pendingLeave}
-            handleLeaveRoom={handleLeaveRoom}
-            handleCallJodete={handleCallJodete}
-          >
-            {gameState?.phase === "lobby" && (
-              <LobbyControls
-                isHost={isHost}
-                cardsPerPlayer={cardsPerPlayer}
-                cardsPerPlayerOptions={gameState?.cardsPerPlayerOptions}
-                canStart={canStart}
-                onCardsPerPlayerChange={setCardsPerPlayer}
-                onStart={handleStart}
-              />
-            )}
-
-            {gameState?.phase === "finished" && isHost && (
+      {hasJoined &&
+        (isMobile ? (
+          <div className="mobile-layout">
+            <nav className="mobile-nav" aria-label="Secciones del juego">
+              {MOBILE_SECTIONS.map((section) => {
+                const isActive = mobileSection === section.id;
+                return (
+                  <button
+                    key={section.id}
+                    type="button"
+                    className={`mobile-nav__button${
+                      isActive ? " mobile-nav__button--active" : ""
+                    }`}
+                    aria-pressed={isActive}
+                    onClick={() => setMobileSection(section.id)}
+                  >
+                    <span className="mobile-nav__icon" aria-hidden="true">
+                      {section.icon}
+                    </span>
+                    <span className="mobile-nav__label">{section.label}</span>
+                  </button>
+                );
+              })}
               <button
                 type="button"
-                className="primary"
-                onClick={handleReset}
-                style={{ marginTop: "1rem" }}
+                className="mobile-nav__button mobile-nav__button--action"
+                onClick={() => setShowRankings(true)}
               >
-                Nueva partida
+                <span className="mobile-nav__icon" aria-hidden="true">
+                  🏆
+                </span>
+                <span className="mobile-nav__label">Rankings</span>
               </button>
+              <button
+                type="button"
+                className="mobile-nav__button mobile-nav__button--ghost"
+                onClick={() => setShowMobileUtility(true)}
+              >
+                <span className="mobile-nav__icon" aria-hidden="true">
+                  👤
+                </span>
+                <span className="mobile-nav__label">Cuenta</span>
+              </button>
+            </nav>
+            {showMobileUtility && (
+              <div className="mobile-utility" role="dialog" aria-modal="true">
+                <button
+                  type="button"
+                  className="mobile-utility__backdrop"
+                  aria-label="Cerrar panel"
+                  onClick={() => setShowMobileUtility(false)}
+                />
+                <div className="mobile-utility__panel">
+                  <div className="mobile-utility__header">
+                    <h2>Tu cuenta</h2>
+                    <button
+                      type="button"
+                      className="mobile-utility__close"
+                      onClick={() => setShowMobileUtility(false)}
+                      aria-label="Cerrar"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="mobile-utility__status">
+                    <span
+                      className={`status-chip status-chip--${connectionState}`}
+                      title={statusChipLabel}
+                    >
+                      <span className="status-chip__dot" aria-hidden="true" />
+                      <span className="status-chip__text">
+                        {statusChipLabel}
+                      </span>
+                    </span>
+                    <p className="mobile-utility__hint">
+                      Gestioná tu sesión y revisá el estado de conexión desde
+                      aquí.
+                    </p>
+                  </div>
+                  <div className="mobile-utility__content">
+                    <LoginButton />
+                  </div>
+                </div>
+              </div>
             )}
-          </PlayersList>
+            <div className="mobile-section">
+              {mobileSection === "board" && (
+                <GameBoard
+                  gameState={gameState}
+                  lastActionKey={lastActionKey}
+                  canDraw={canDraw}
+                  canDeclareLastCard={canDeclareLastCard}
+                  jodeteTargets={jodeteTargets}
+                  onDraw={handleDraw}
+                  onDeclareLastCard={handleDeclareLastCard}
+                  onCallJodete={handleCallJodete}
+                >
+                  <PlayerHand
+                    hand={me?.hand}
+                    sortedHand={sortedHand}
+                    playableCards={playableCards}
+                    isMyTurn={isMyTurn}
+                    onPlayCard={handlePlayCard}
+                  />
+                </GameBoard>
+              )}
+              {mobileSection === "players" && (
+                <PlayersList
+                  displayPlayers={displayPlayers}
+                  gameState={gameState}
+                  isHost={isHost}
+                  me={me}
+                  pendingLeave={pendingLeave}
+                  handleLeaveRoom={handleLeaveRoom}
+                  handleCallJodete={handleCallJodete}
+                >
+                  {gameState?.phase === "lobby" && (
+                    <LobbyControls
+                      isHost={isHost}
+                      cardsPerPlayer={cardsPerPlayer}
+                      cardsPerPlayerOptions={gameState?.cardsPerPlayerOptions}
+                      canStart={canStart}
+                      onCardsPerPlayerChange={setCardsPerPlayer}
+                      onStart={handleStart}
+                    />
+                  )}
 
-          <GameBoard
-            gameState={gameState}
-            lastActionKey={lastActionKey}
-            canDraw={canDraw}
-            canDeclareLastCard={canDeclareLastCard}
-            jodeteTargets={jodeteTargets}
-            onDraw={handleDraw}
-            onDeclareLastCard={handleDeclareLastCard}
-            onCallJodete={handleCallJodete}
-          >
-            <PlayerHand
-              hand={me?.hand}
-              sortedHand={sortedHand}
-              playableCards={playableCards}
-              isMyTurn={isMyTurn}
-              onPlayCard={handlePlayCard}
-            />
-          </GameBoard>
+                  {gameState?.phase === "finished" && isHost && (
+                    <button
+                      type="button"
+                      className="primary"
+                      onClick={handleReset}
+                      style={{ marginTop: "1rem" }}
+                    >
+                      Nueva partida
+                    </button>
+                  )}
+                </PlayersList>
+              )}
+              {mobileSection === "log" && (
+                <GameLog messages={gameState?.messages} />
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="layout-grid">
+            <PlayersList
+              displayPlayers={displayPlayers}
+              gameState={gameState}
+              isHost={isHost}
+              me={me}
+              pendingLeave={pendingLeave}
+              handleLeaveRoom={handleLeaveRoom}
+              handleCallJodete={handleCallJodete}
+            >
+              {gameState?.phase === "lobby" && (
+                <LobbyControls
+                  isHost={isHost}
+                  cardsPerPlayer={cardsPerPlayer}
+                  cardsPerPlayerOptions={gameState?.cardsPerPlayerOptions}
+                  canStart={canStart}
+                  onCardsPerPlayerChange={setCardsPerPlayer}
+                  onStart={handleStart}
+                />
+              )}
 
-          <GameLog messages={gameState?.messages} />
-        </div>
-      )}
+              {gameState?.phase === "finished" && isHost && (
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={handleReset}
+                  style={{ marginTop: "1rem" }}
+                >
+                  Nueva partida
+                </button>
+              )}
+            </PlayersList>
+
+            <GameBoard
+              gameState={gameState}
+              lastActionKey={lastActionKey}
+              canDraw={canDraw}
+              canDeclareLastCard={canDeclareLastCard}
+              jodeteTargets={jodeteTargets}
+              onDraw={handleDraw}
+              onDeclareLastCard={handleDeclareLastCard}
+              onCallJodete={handleCallJodete}
+            >
+              <PlayerHand
+                hand={me?.hand}
+                sortedHand={sortedHand}
+                playableCards={playableCards}
+                isMyTurn={isMyTurn}
+                onPlayCard={handlePlayCard}
+              />
+            </GameBoard>
+
+            <GameLog messages={gameState?.messages} />
+          </div>
+        ))}
 
       {error && hasJoined && (
         <div className="error-banner floating">{error}</div>

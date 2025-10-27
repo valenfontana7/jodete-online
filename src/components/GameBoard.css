@@ -30,8 +30,8 @@
 
 .board-state {
   display: grid;
-  grid-template-columns: 200px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 0.9fr);
+  gap: clamp(12px, 1.8vw, 18px);
   align-items: stretch;
 }
 
@@ -40,6 +40,7 @@
   flex-direction: column;
   align-items: center;
   gap: 12px;
+  width: 100%;
 }
 
 .label {
@@ -54,8 +55,8 @@
 
 .board-info {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: clamp(8px, 1.4vw, 14px);
   align-content: start;
 }
 
@@ -81,6 +82,42 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.board-info button {
+  grid-column: 1 / -1;
+  font-size: 0.95rem;
+  padding-block: 10px;
+}
+
+@media (max-width: 1024px) {
+  .board-state {
+    grid-template-columns: 1fr;
+  }
+
+  .board-info button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 720px) {
+  .board-state {
+    gap: clamp(12px, 3vw, 16px);
+  }
+
+  .board-info {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: clamp(8px, 2.4vw, 14px);
+  }
+
+  .card-tile {
+    max-width: min(220px, 80vw);
+  }
+
+  .card-tile--large {
+    max-width: min(260px, 85vw);
+    width: min(260px, 85vw);
+  }
 }
 
 /* Card styles */
@@ -170,7 +207,8 @@
 .card-tile--large {
   min-height: auto;
   min-width: 160px;
-  max-width: 260px;
+  max-width: min(260px, 72vw);
+  width: min(260px, 72vw);
 }
 
 .card-placeholder {

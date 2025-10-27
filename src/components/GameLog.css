@@ -1,19 +1,29 @@
 .log-panel {
   grid-area: log;
-  max-height: calc(50vh - 10px);
-  overflow-y: auto;
+  align-self: stretch;
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
 }
 
-.panel-header {
+.log-panel .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  z-index: 2;
+  padding-bottom: 12px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
 }
 
-.panel-header h2 {
+.log-panel .panel-header h2 {
   margin: 0;
 }
 
@@ -27,6 +37,7 @@
   overflow-y: auto;
   flex: 1;
   min-height: 0;
+  padding-right: 6px;
 }
 
 .log-list li {
@@ -47,4 +58,25 @@
 .log-text {
   flex: 1;
   color: #1f2937;
+}
+
+@media (max-width: 720px) {
+  .log-panel {
+    overflow: visible;
+    gap: 10px;
+  }
+
+  .log-panel .panel-header {
+    position: static;
+    padding-bottom: 0;
+    margin-bottom: 0;
+    border-bottom: none;
+  }
+
+  .log-list {
+    padding-right: 0;
+    overflow: visible;
+    max-height: none;
+    gap: 8px;
+  }
 }

@@ -2,6 +2,7 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+  padding-bottom: clamp(16px, calc(2vw + 10px), 26px);
 }
 
 .panel-header {
@@ -30,9 +31,10 @@
 
 .hand-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: clamp(8px, 1.5vw, 12px);
   justify-items: center;
+  padding-bottom: clamp(12px, 2.5vw, 20px);
 }
 
 .empty-hint {
@@ -51,12 +53,12 @@
   --card-extra-tilt: 0deg;
   --card-elevation: 0px;
   --grain-angle: 0deg;
-  border-radius: 18px;
-  padding: 8px;
+  border-radius: 14px;
+  padding: 6px;
   width: 100%;
   aspect-ratio: 5 / 7.3;
   min-height: auto;
-  max-width: clamp(150px, 24vw, 220px);
+  max-width: clamp(120px, 18vw, 180px);
   margin-inline: auto;
   background: linear-gradient(
       135deg,
@@ -300,6 +302,30 @@
 .card-ornament--suit .suit-icon {
   width: 0.9em;
   height: 0.9em;
+}
+
+.card-tile--large {
+  max-width: clamp(140px, 22vw, 210px);
+}
+
+@media (max-width: 720px) {
+  .hand-section {
+    gap: 12px;
+    padding-bottom: calc(
+      clamp(18px, 6vw, 30px) + env(safe-area-inset-bottom, 12px)
+    );
+  }
+
+  .hand-grid {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: clamp(8px, 3vw, 14px);
+    padding-bottom: clamp(16px, 7vw, 32px);
+  }
+
+  .card-tile {
+    aspect-ratio: 1 / 2 !important;
+    max-width: min(180px, 65vw);
+  }
 }
 
 /* Suit color variants */

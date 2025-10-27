@@ -64,7 +64,6 @@ export default function LoginButton() {
           d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 001.83 5.4L4.5 7.49a4.77 4.77 0 014.48-3.3z"
         />
       </svg>
-      Iniciar sesión con Google
     </button>
   );
 }
