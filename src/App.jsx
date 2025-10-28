@@ -15,20 +15,53 @@ import { SUIT_META } from "./constants/gameConstants";
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-function hashString(input) {
-  const str = String(input ?? "");
-  let hash = 0;
-  for (let index = 0; index < str.length; index += 1) {
-    hash = (hash << 5) - hash + str.charCodeAt(index);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-}
-
 const SUIT_INDEX = SUIT_META.reduce((acc, suit, index) => {
   acc[suit.id] = index;
   return acc;
 }, {});
+
+const STORAGE_KEYS = {
+  playerToken: "playerToken",
+  roomId: "lastRoomId",
+};
+
+const readSessionOrLocal = (key) => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const sessionValue = window.sessionStorage.getItem(key);
+    if (sessionValue) {
+      return sessionValue;
+    }
+    const localValue = window.localStorage.getItem(key);
+    if (localValue) {
+      window.sessionStorage.setItem(key, localValue);
+      return localValue;
+    }
+  } catch (error) {
+    console.warn(`[storage] No se pudo leer la clave ${key}:`, error);
+  }
+  return null;
+};
+
+const persistValue = (key, value) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    if (value == null) {
+      window.sessionStorage.removeItem(key);
+      window.localStorage.removeItem(key);
+    } else {
+      const normalized = String(value);
+      window.sessionStorage.setItem(key, normalized);
+      window.localStorage.setItem(key, normalized);
+    }
+  } catch (error) {
+    console.warn(`[storage] No se pudo persistir la clave ${key}:`, error);
+  }
+};
 
 const getInitialName = () => {
   if (typeof window === "undefined") {
@@ -41,14 +74,14 @@ const getInitialToken = () => {
   if (typeof window === "undefined") {
     return null;
   }
-  return window.sessionStorage.getItem("playerToken");
+  return readSessionOrLocal(STORAGE_KEYS.playerToken);
 };
 
 const getInitialRoomId = () => {
   if (typeof window === "undefined") {
     return null;
   }
-  return window.sessionStorage.getItem("lastRoomId");
+  return readSessionOrLocal(STORAGE_KEYS.roomId);
 };
 
 const computeSocketUrl = () => {
@@ -177,11 +210,11 @@ function App() {
       // Reintentar reconexión automática si había un token y roomId guardados
       const savedToken =
         typeof window !== "undefined"
-          ? window.sessionStorage.getItem("playerToken")
+          ? readSessionOrLocal(STORAGE_KEYS.playerToken)
           : null;
       const savedRoomId =
         typeof window !== "undefined"
-          ? window.sessionStorage.getItem("lastRoomId")
+          ? readSessionOrLocal(STORAGE_KEYS.roomId)
           : null;
 
       if (savedToken && savedRoomId) {
@@ -215,9 +248,7 @@ function App() {
           (room) => room.id === prev && room.phase !== "finished"
         );
         if (!exists) {
-          if (typeof window !== "undefined") {
-            window.sessionStorage.removeItem("lastRoomId");
-          }
+          persistValue(STORAGE_KEYS.roomId, null);
           autoJoinAttemptedRef.current = false;
           return null;
         }
@@ -228,8 +259,8 @@ function App() {
       setGameState(state);
       setHasJoined(Boolean(state?.me));
       setPendingJoin(false);
-      if (state?.roomId && typeof window !== "undefined") {
-        window.sessionStorage.setItem("lastRoomId", state.roomId);
+      if (state?.roomId) {
+        persistValue(STORAGE_KEYS.roomId, state.roomId);
       }
       if (state?.roomId) {
         setStoredRoomId(state.roomId);
@@ -239,9 +270,7 @@ function App() {
           if (prev === state.me.token) {
             return prev;
           }
-          if (typeof window !== "undefined") {
-            window.sessionStorage.setItem("playerToken", state.me.token);
-          }
+          persistValue(STORAGE_KEYS.playerToken, state.me.token);
           return state.me.token;
         });
       }
@@ -258,9 +287,7 @@ function App() {
           if (!prev) {
             return prev;
           }
-          if (typeof window !== "undefined") {
-            window.sessionStorage.removeItem("lastRoomId");
-          }
+          persistValue(STORAGE_KEYS.roomId, null);
           autoJoinAttemptedRef.current = false;
           return null;
         });
@@ -270,9 +297,7 @@ function App() {
       setHasJoined(true);
       setPendingJoin(false);
       setPendingLeave(false);
-      if (typeof window !== "undefined") {
-        window.sessionStorage.setItem("lastRoomId", roomId);
-      }
+      persistValue(STORAGE_KEYS.roomId, roomId);
       setStoredRoomId(roomId);
     });
     instance.on("leftRoom", () => {
@@ -280,9 +305,8 @@ function App() {
       setHasJoined(false);
       setPendingJoin(false);
       setPendingLeave(false);
-      if (typeof window !== "undefined") {
-        window.sessionStorage.removeItem("lastRoomId");
-      }
+      persistValue(STORAGE_KEYS.roomId, null);
+      persistValue(STORAGE_KEYS.playerToken, null);
       autoJoinAttemptedRef.current = false;
       setStoredRoomId(null);
     });
@@ -559,9 +583,9 @@ function App() {
       setError(null);
       if (typeof window !== "undefined") {
         window.localStorage.setItem("playerName", trimmed);
-        window.sessionStorage.removeItem("playerToken");
-        window.sessionStorage.removeItem("lastRoomId");
       }
+      persistValue(STORAGE_KEYS.playerToken, null);
+      persistValue(STORAGE_KEYS.roomId, null);
       setPlayerToken(null);
       setStoredRoomId(null);
       autoJoinAttemptedRef.current = false;
@@ -648,10 +672,8 @@ function App() {
     setStoredRoomId(null);
     setPlayerToken(null);
     autoJoinAttemptedRef.current = false;
-    if (typeof window !== "undefined") {
-      window.sessionStorage.removeItem("lastRoomId");
-      window.sessionStorage.removeItem("playerToken");
-    }
+    persistValue(STORAGE_KEYS.roomId, null);
+    persistValue(STORAGE_KEYS.playerToken, null);
     socket.emit("leaveRoom");
   }, [socket]);
 

@@ -131,8 +131,8 @@ cd jodete-online
 npm install
 
 # Configurar variables de entorno (opcional)
-cp .env.example .env
-# Editar .env según tus necesidades
+cp .env.example .env.local
+# Editar .env.local según tus necesidades
 
 # Build y start
 npm run build
