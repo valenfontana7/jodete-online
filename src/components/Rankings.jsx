@@ -50,7 +50,13 @@ export default function Rankings({ onClose }) {
   }, [loadRankings, loadStats]);
 
   const formatWinRate = (rate) => {
-    return `${(rate * 100).toFixed(1)}%`;
+    const numericRate = Number(rate);
+    if (!Number.isFinite(numericRate) || numericRate < 0) {
+      return "0%";
+    }
+
+    const rounded = Math.round(numericRate * 10) / 10;
+    return Number.isInteger(rounded) ? `${rounded}%` : `${rounded.toFixed(1)}%`;
   };
 
   const getMedalEmoji = (position) => {
