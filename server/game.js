@@ -396,7 +396,7 @@ class Game {
 
       // Verificar si el jugador tiene cartas jugables después de recibir la penalización
       const hasPlayableCards = player.hand.some((handCard) =>
-        this.isPlayable(handCard)
+        this.isPlayable(handCard, player.id)
       );
 
       if (!hasPlayableCards) {
@@ -413,10 +413,10 @@ class Game {
     player.declaredLastCard = false;
 
     // Verificar si la carta robada es jugable inmediatamente
-    const drawnCardIsPlayable = this.isPlayable(card);
+    const drawnCardIsPlayable = this.isPlayable(card, player.id);
 
     const hasPlayableCards = player.hand.some((handCard) =>
-      this.isPlayable(handCard)
+      this.isPlayable(handCard, player.id)
     );
 
     let message = `${player.name} robó una carta.`;
@@ -448,7 +448,7 @@ class Game {
 
     // Verificar si tiene cartas jugables después de recibir las cartas
     const hasPlayableCards = player.hand.some((handCard) =>
-      this.isPlayable(handCard)
+      this.isPlayable(handCard, player.id)
     );
 
     let message = `${player.name} recibió ${this.pendingDraw} carta(s) por acumulación de doses.`;
@@ -488,7 +488,7 @@ class Game {
       }
     }
 
-    if (!this.isPlayable(card)) {
+    if (!this.isPlayable(card, player.id)) {
       throw new Error("La carta no coincide con el palo o número actual");
     }
 
@@ -586,7 +586,7 @@ class Game {
 
   describeCard(card) {
     const names = {
-      1: "As",
+      1: "Uno",
       2: "Dos",
       3: "Tres",
       4: "Cuatro",
@@ -600,15 +600,31 @@ class Game {
     return `${names[card.value]} de ${card.suit}`;
   }
 
-  isPlayable(card) {
+  isPlayable(card, playerId = null) {
     const top = this.discardPile[this.discardPile.length - 1];
     if (!top) return true;
 
     const currentSuit = this.currentSuitOverride || top.suit;
+    const activePlayerId = this.players[this.currentPlayerIndex]?.id;
+    const constraint = this.repeatConstraint;
+    const targetPlayerId = playerId ?? activePlayerId;
+
+    const repeatRestrictionApplies =
+      constraint &&
+      constraint.playerId &&
+      targetPlayerId === constraint.playerId;
 
     // Si hay acumulación de doses, solo se puede jugar otro 2
     if (this.pendingDraw > 0) {
       return card.value === 2;
+    }
+
+    if (repeatRestrictionApplies) {
+      const meetsRequirement =
+        card.value === 11 || card.suit === constraint.suit;
+      if (!meetsRequirement) {
+        return false;
+      }
     }
 
     // El 10 (comodín) se puede jugar siempre, EXCEPTO cuando hay doses acumulados
@@ -757,7 +773,7 @@ class Game {
       const top = this.discardPile[this.discardPile.length - 1] || null;
       const playableCards = requester
         ? requester.hand
-            .filter((card) => this.isPlayable(card))
+            .filter((card) => this.isPlayable(card, requester.id))
             .map((card) => card.id)
         : [];
 
