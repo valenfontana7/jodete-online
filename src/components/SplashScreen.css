@@ -1,0 +1,145 @@
+.app-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(
+      circle at 20% 20%,
+      rgba(151, 177, 121, 0.28),
+      transparent 55%
+    ),
+    radial-gradient(circle at 80% 15%, rgba(65, 90, 60, 0.35), transparent 65%),
+    linear-gradient(135deg, #243523 0%, #3f5f3a 40%, #648a62 100%);
+  color: #f8faf5;
+  padding: clamp(24px, 8vw, 64px);
+  transition: opacity 260ms ease;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.app-splash--hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.app-splash__surface {
+  width: min(420px, 92vw);
+  background: rgba(255, 255, 255, 0.9);
+  color: #1f2d20;
+  border-radius: 28px;
+  box-shadow: 0 24px 60px rgba(20, 30, 20, 0.32);
+  padding: clamp(24px, 5vw, 48px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(18px, 4vw, 28px);
+  transform: translateY(0);
+  transition: transform 320ms ease, opacity 260ms ease;
+}
+
+.app-splash--hidden .app-splash__surface {
+  transform: translateY(-16px);
+  opacity: 0.75;
+}
+
+.app-splash__spinner {
+  width: clamp(52px, 12vw, 72px);
+  height: clamp(52px, 12vw, 72px);
+  border-radius: 50%;
+  border: 6px solid rgba(63, 99, 71, 0.18);
+  border-top-color: #3f6212;
+  animation: app-splash-spin 0.9s linear infinite;
+}
+
+.app-splash__title {
+  font-size: clamp(1.6rem, 5vw, 2.1rem);
+  margin: 0;
+  font-weight: 700;
+  color: #1b3a29;
+  text-align: center;
+}
+
+.app-splash__status {
+  margin: 0;
+  font-size: clamp(1rem, 3.5vw, 1.125rem);
+  font-weight: 600;
+  color: #2f4f2f;
+  text-align: center;
+}
+
+.app-splash__progress {
+  width: 100%;
+  position: relative;
+  background: rgba(63, 99, 71, 0.18);
+  border-radius: 999px;
+  overflow: hidden;
+  height: clamp(12px, 2.8vw, 16px);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 2px;
+  gap: 8px;
+}
+
+.app-splash__progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2f4f2f 0%, #72a167 100%);
+  transition: width 320ms ease;
+}
+
+.app-splash__progress-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: clamp(0.75rem, 2.4vw, 0.95rem);
+  color: #1e2f1d;
+}
+
+.app-splash__hint {
+  margin: 0;
+  font-size: clamp(0.9rem, 3vw, 1rem);
+  color: #3c523d;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.app-splash__texts {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 3vw, 16px);
+  align-items: center;
+}
+
+@keyframes app-splash-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 480px) {
+  .app-splash {
+    padding: clamp(16px, 12vw, 32px);
+  }
+
+  .app-splash__surface {
+    border-radius: 22px;
+    padding: clamp(26px, 9vw, 40px);
+  }
+
+  .app-splash__spinner {
+    border-width: 5px;
+  }
+
+  .app-splash__progress {
+    height: clamp(12px, 4vw, 18px);
+  }
+}

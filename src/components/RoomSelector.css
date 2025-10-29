@@ -1,8 +1,15 @@
 .join-panel {
   max-width: 640px;
-  margin: 0 auto;
+  margin: clamp(28px, 6vh, 88px) auto 0;
   align-self: center;
   text-align: center;
+}
+
+@media (max-width: 720px) {
+  .join-panel {
+    margin: auto;
+    min-height: min(520px, 100%);
+  }
 }
 
 .panel-subtitle {

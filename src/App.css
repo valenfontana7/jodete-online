@@ -71,10 +71,10 @@
    =========================== */
 .app-shell {
   min-height: 100vh;
-  padding: clamp(18px, 3.5vh, 28px) clamp(12px, 3vw, 32px);
+  padding: clamp(8px, 1.6vh, 14px) clamp(10px, 1.4vw, 18px);
   display: flex;
   flex-direction: column;
-  gap: clamp(14px, 2.5vw, 20px);
+  gap: clamp(10px, 1.8vw, 20px);
   color: #111827;
   position: relative;
   isolation: isolate;
@@ -87,23 +87,20 @@
   position: fixed;
   inset: 0;
   background: radial-gradient(
-      circle at 20% 20%,
-      rgba(79, 70, 229, 0.12),
-      transparent 55%
+      circle at 16% 18%,
+      rgba(64, 99, 71, 0.46),
+      transparent 58%
     ),
+    radial-gradient(circle at 82% 14%, rgba(42, 64, 49, 0.4), transparent 62%),
     radial-gradient(
-      circle at 80% 10%,
-      rgba(244, 114, 182, 0.12),
+      circle at 50% 88%,
+      rgba(120, 158, 110, 0.38),
       transparent 60%
     ),
-    radial-gradient(
-      circle at 50% 90%,
-      rgba(56, 189, 248, 0.18),
-      transparent 60%
-    );
+    linear-gradient(180deg, #0f2617 0%, #153820 46%, #1d4829 100%);
   filter: blur(0px);
   z-index: -1;
-  opacity: 0.8;
+  opacity: 0.98;
 }
 
 /* ===========================
@@ -298,19 +295,19 @@
   flex-direction: column;
   align-items: stretch;
   gap: clamp(6px, 1.8vh, 10px);
-  padding: clamp(10px, 2.5vh, 16px) clamp(14px, 3vw, 22px);
-  background: rgba(255, 255, 255, 0.7);
+  padding: clamp(8px, 2vh, 22px) clamp(10px, 2vw, 46px);
+  background: #ffffff;
   border: 1px solid rgba(148, 163, 184, 0.35);
   border-radius: 18px;
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
   backdrop-filter: blur(16px);
   position: sticky;
-  top: clamp(10px, 2vh, 18px);
+  top: clamp(6px, 1.2vh, 12px);
   z-index: 16;
 }
 
 .app-header--playing {
-  padding: clamp(8px, 2vh, 12px) clamp(12px, 3vw, 18px);
+  padding: clamp(6px, 1.6vh, 22px) clamp(8px, 1.8vw, 46px);
   border-radius: 14px;
   box-shadow: 0 14px 32px rgba(15, 23, 42, 0.1);
 }
@@ -623,7 +620,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   gap: 10px;
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255);
   border: 1px solid rgba(148, 163, 184, 0.35);
   border-radius: 16px;
   padding: 8px;
@@ -962,7 +959,7 @@ button:disabled {
 
 @media (max-width: 480px) {
   .app-shell {
-    padding: 20px 12px;
+    padding: 0px 12px;
   }
 
   .panel {

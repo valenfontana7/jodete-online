@@ -10,6 +10,7 @@ import GameBoard from "./components/GameBoard";
 import PlayerHand from "./components/PlayerHand";
 import GameLog from "./components/GameLog";
 import SuitSelector from "./components/SuitSelector";
+import SplashScreen from "./components/SplashScreen";
 import { useAuth } from "./contexts/AuthContext";
 import { SUIT_META } from "./constants/gameConstants";
 
@@ -163,6 +164,10 @@ function App() {
   const [actionOverlay, setActionOverlay] = useState(null);
   const overlayTimeoutRef = useRef(null);
   const prevLastActionRef = useRef(null);
+  const [renderSplash, setRenderSplash] = useState(true);
+  const [splashVisible, setSplashVisible] = useState(true);
+  const [splashProgress, setSplashProgress] = useState(16);
+  const isSplashActive = !roomsLoaded;
   const joinableRooms = useMemo(
     () => rooms.filter((room) => room.phase !== "finished"),
     [rooms]
@@ -490,6 +495,68 @@ function App() {
     },
     []
   );
+
+  useEffect(() => {
+    if (!isSplashActive) {
+      setSplashProgress(100);
+      setSplashVisible(false);
+      const timeout = setTimeout(() => setRenderSplash(false), 520);
+      return () => clearTimeout(timeout);
+    }
+
+    setRenderSplash(true);
+
+    if (typeof window === "undefined") {
+      setSplashVisible(true);
+      return undefined;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      setSplashVisible(true);
+    });
+
+    return () => {
+      if (typeof window !== "undefined") {
+        window.cancelAnimationFrame(frame);
+      }
+    };
+  }, [isSplashActive]);
+
+  useEffect(() => {
+    if (!isSplashActive) {
+      return;
+    }
+
+    setSplashProgress((prev) => {
+      const baseline = socketConnected ? 55 : 16;
+      return prev < baseline ? baseline : prev;
+    });
+  }, [isSplashActive, socketConnected]);
+
+  useEffect(() => {
+    if (!isSplashActive) {
+      return undefined;
+    }
+
+    const target = socketConnected ? 94 : 78;
+    const interval = setInterval(() => {
+      setSplashProgress((prev) => {
+        if (!isSplashActive || roomsLoaded) {
+          return prev;
+        }
+        if (prev >= target) {
+          return prev;
+        }
+        const increment = socketConnected
+          ? 2.4 + Math.random() * 3.2
+          : 1 + Math.random() * 2.1;
+        const next = prev + increment;
+        return next > target ? target : next;
+      });
+    }, 280);
+
+    return () => clearInterval(interval);
+  }, [isSplashActive, socketConnected, roomsLoaded]);
 
   const me = gameState?.me ?? null;
 
@@ -916,9 +983,27 @@ function App() {
   const statusChipLabel = phaseLabel
     ? `${connectionLabel} · ${phaseLabel}`
     : connectionLabel;
+  const splashStatus = socketConnected
+    ? "Sincronizando salas disponibles..."
+    : socket
+    ? "Reconectando con el servidor..."
+    : "Conectando con el servidor...";
+  const splashHint = error
+    ? error
+    : socketConnected
+    ? "Preparando la mesa y sincronizando jugadores."
+    : "Verificando tu conexión. Si tarda mucho, recargá la página.";
 
   return (
     <div className="app-shell">
+      {renderSplash && (
+        <SplashScreen
+          status={splashStatus}
+          hint={splashHint}
+          progress={splashProgress}
+          visible={splashVisible}
+        />
+      )}
       <div className={flashClassName} aria-hidden="true" />
       {!isMobile && (
         <header className={headerClassName}>
